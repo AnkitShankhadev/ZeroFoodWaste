@@ -14,9 +14,12 @@ import {
   HandHeart,
   ArrowLeft,
   Eye,
-  EyeOff
+  EyeOff,
+  MapPin
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 type AuthMode = "login" | "register";
 type UserRole = "donor" | "ngo" | "volunteer";
@@ -29,16 +32,32 @@ const roles = [
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { signIn, signUp, isAuthenticated } = useAuth();
   const [mode, setMode] = useState<AuthMode>((searchParams.get("mode") as AuthMode) || "login");
   const [selectedRole, setSelectedRole] = useState<UserRole>((searchParams.get("role") as UserRole) || "donor");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
+    phone: "",
+    location: {
+      lat: 0,
+      lng: 0,
+      address: ""
+    }
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard/donor");
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     const modeParam = searchParams.get("mode") as AuthMode;
@@ -47,28 +66,140 @@ const Auth = () => {
     if (roleParam) setSelectedRole(roleParam);
   }, [searchParams]);
 
+  const getLocation = () => {
+    setIsGettingLocation(true);
+    
+    if (!navigator.geolocation) {
+      toast({
+        title: "Geolocation not supported",
+        description: "Please enter your address manually",
+        variant: "destructive",
+      });
+      setIsGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({
+          ...formData,
+          location: {
+            ...formData.location,
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          }
+        });
+        toast({
+          title: "Location detected",
+          description: "Your location has been captured successfully",
+        });
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        toast({
+          title: "Location error",
+          description: "Could not get your location. Please enter manually.",
+          variant: "destructive",
+        });
+        setIsGettingLocation(false);
+      }
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      if (mode === "login") {
+        const { error } = await signIn(formData.email, formData.password);
+        
+        if (error) {
+          toast({
+            title: "Login failed",
+            description: error.message || "Invalid email or password",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Welcome back!",
+            description: "You've successfully logged in.",
+          });
+          navigate("/dashboard/donor");
+        }
+      } else {
+        // Register - validate required fields
+        if (!formData.name) {
+          toast({
+            title: "Validation error",
+            description: "Please provide your full name",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
 
-    toast({
-      title: mode === "login" ? "Welcome back!" : "Account created!",
-      description: mode === "login" 
-        ? "You've successfully logged in." 
-        : `Your ${selectedRole} account has been created.`,
-    });
+        if (!formData.location.lat || !formData.location.lng) {
+          toast({
+            title: "Location required",
+            description: "Please provide your location or use the 'Get My Location' button",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
 
-    setIsLoading(false);
+        // Convert role to backend format
+        const roleMap: Record<UserRole, "DONOR" | "NGO" | "VOLUNTEER"> = {
+          donor: "DONOR",
+          ngo: "NGO",
+          volunteer: "VOLUNTEER",
+        };
+
+        const { error } = await signUp(
+          formData.name,
+          formData.email,
+          formData.password,
+          roleMap[selectedRole],
+          formData.location,
+          formData.phone
+        );
+
+        if (error) {
+          toast({
+            title: "Registration failed",
+            description: error.message || "Failed to create account",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Account created!",
+            description: `Your ${selectedRole} account has been created.`,
+          });
+          const dashboardMap: Record<UserRole, string> = {
+            donor: "/dashboard/donor",
+            ngo: "/dashboard/ngo",
+            volunteer: "/dashboard/volunteer",
+          };
+          navigate(dashboardMap[selectedRole]);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-500 via-green-600 to-green-700 relative overflow-hidden">
-        {/* Pattern overlay */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -118,7 +249,6 @@ const Auth = () => {
           </div>
         </div>
 
-        {/* Decorative shapes */}
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/5 rounded-tl-full" />
         <div className="absolute top-20 right-20 w-32 h-32 bg-white/5 rounded-full" />
       </div>
@@ -130,7 +260,6 @@ const Auth = () => {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          {/* Mobile logo */}
           <Link to="/" className="lg:hidden flex items-center gap-2 mb-8">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
               <Leaf className="w-5 h-5 text-white" />
@@ -266,6 +395,77 @@ const Auth = () => {
                 </button>
               </div>
             </div>
+
+            <AnimatePresence mode="wait">
+              {mode === "register" && (
+                <>
+                  <motion.div
+                    key="phone-field"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <Label htmlFor="phone">Phone Number (Optional)</Label>
+                    <div className="relative mt-1.5">
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+977 9800000000"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="h-12"
+                      />
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    key="location-field"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-3"
+                  >
+                    <Label>Location *</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={getLocation}
+                      disabled={isGettingLocation}
+                    >
+                      {isGettingLocation ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin mr-2" />
+                          Getting location...
+                        </>
+                      ) : (
+                        <>
+                          <MapPin className="w-4 h-4 mr-2" />
+                          Get My Location
+                        </>
+                      )}
+                    </Button>
+                    
+                    {formData.location.lat !== 0 && formData.location.lng !== 0 && (
+                      <p className="text-sm text-green-600 flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Location captured: {formData.location.lat.toFixed(4)}, {formData.location.lng.toFixed(4)}
+                      </p>
+                    )}
+
+                    <Input
+                      placeholder="Or enter your address manually"
+                      value={formData.location.address}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        location: { ...formData.location, address: e.target.value }
+                      })}
+                      className="h-12"
+                    />
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
 
             {mode === "login" && (
               <div className="flex items-center justify-end">

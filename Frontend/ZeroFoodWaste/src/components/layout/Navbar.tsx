@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,9 +10,12 @@ import {
   Gift, 
   Map, 
   Trophy, 
-  // User,
-  LogIn
+  User,
+  LogIn,
+  LogOut,
+  UserCircle
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
@@ -24,6 +27,25 @@ const navLinks = [
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+    setIsOpen(false);
+  };
+
+  const getDashboardPath = () => {
+    if (!user) return "/dashboard/donor";
+    const roleMap: Record<string, string> = {
+      DONOR: "/dashboard/donor",
+      NGO: "/dashboard/ngo",
+      VOLUNTEER: "/dashboard/volunteer",
+      ADMIN: "/dashboard/admin",
+    };
+    return roleMap[user.role] || "/dashboard/donor";
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
@@ -60,17 +82,34 @@ export const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/auth">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <LogIn className="w-4 h-4" />
-                Login
-              </Button>
-            </Link>
-            <Link to="/auth">
-              <Button variant="hero" size="sm">
-                Get Started
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to={getDashboardPath()}>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <UserCircle className="w-4 h-4" />
+                    {user?.name || "Dashboard"}
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button variant="hero" size="sm">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -111,17 +150,34 @@ export const Navbar = () => {
                   );
                 })}
                 <div className="pt-4 border-t border-border space-y-2">
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>
-                    <Button variant="outline" className="w-full gap-2">
-                      <LogIn className="w-4 h-4" />
-                      Login
-                    </Button>
-                  </Link>
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>
-                    <Button variant="hero" className="w-full">
-                      Get Started
-                    </Button>
-                  </Link>
+                  {isAuthenticated ? (
+                    <>
+                      <Link to={getDashboardPath()} onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full gap-2">
+                          <UserCircle className="w-4 h-4" />
+                          {user?.name || "Dashboard"}
+                        </Button>
+                      </Link>
+                      <Button variant="ghost" className="w-full gap-2" onClick={handleLogout}>
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/auth" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full gap-2">
+                          <LogIn className="w-4 h-4" />
+                          Login
+                        </Button>
+                      </Link>
+                      <Link to="/auth" onClick={() => setIsOpen(false)}>
+                        <Button variant="hero" className="w-full">
+                          Get Started
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

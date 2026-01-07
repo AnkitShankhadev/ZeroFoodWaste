@@ -4,24 +4,70 @@ import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { api } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export function CreateDonationPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     foodType: "",
     quantity: "",
+    quantityUnit: "kg",
     expiryDate: "",
     description: "",
     location: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Submit to backend
-    console.log("Donation created:", formData);
-    navigate("/donations");
+    setIsLoading(true);
+
+    try {
+      // Parse quantity
+      const quantityMatch = formData.quantity.match(/^(\d+(?:\.\d+)?)\s*(kg|plates|servings|pieces)?$/i);
+      const quantity = quantityMatch ? parseFloat(quantityMatch[1]) : parseFloat(formData.quantity);
+      const quantityUnit = quantityMatch?.[2]?.toLowerCase() || formData.quantityUnit;
+
+      // For now, use user's location or parse address
+      const location = user?.location || {
+        lat: 28.6139, // Default to New Delhi
+        lng: 77.2090,
+        address: formData.location,
+      };
+
+      const donationData = {
+        foodType: formData.foodType,
+        quantity,
+        quantityUnit,
+        expiryDate: new Date(formData.expiryDate).toISOString(),
+        description: formData.description,
+        location,
+        status: "CREATED",
+      };
+
+      const response = await api.createDonation(donationData);
+
+      if (response.success) {
+        toast({
+          title: "Success!",
+          description: "Your donation has been created successfully.",
+        });
+        navigate("/donations");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create donation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -99,11 +145,18 @@ export function CreateDonationPage() {
               </div>
 
               <div className="flex gap-4">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => navigate("/donations")}>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => navigate("/donations")} disabled={isLoading}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1">
-                  Create Donation
+                <Button type="submit" className="flex-1" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Donation"
+                  )}
                 </Button>
               </div>
             </form>
