@@ -13,11 +13,13 @@ import {
   Scale,
   ChevronRight,
   X,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import { GoogleMapComponent } from "@/components/map/GoogleMap";
 import { useGoogleMapsToken } from "@/hooks/useGoogleMapsToken";
 import { useMapData, type MapMarker } from "@/hooks/useMapData";
+import { toast } from "@/hooks/use-toast";
 
 const MapPage = () => {
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
@@ -26,7 +28,7 @@ const MapPage = () => {
   const [filterType, setFilterType] = useState<"all" | "donation" | "ngo" | "volunteer">("all");
 
   const { isLoaded: mapsLoaded, error: mapsError } = useGoogleMapsToken();
-  const { markers, isLoading: dataLoading } = useMapData();
+  const { markers, isLoading: dataLoading, error: dataError, refetch } = useMapData();
 
   // Get user's location
   useEffect(() => {
@@ -40,8 +42,13 @@ const MapPage = () => {
         },
         (error) => {
           console.log("Geolocation error:", error);
+          // Default to Kathmandu if geolocation fails
+          setUserLocation({ lat: 27.7172, lng: 85.3240 });
         }
       );
+    } else {
+      // Default to Kathmandu if geolocation not supported
+      setUserLocation({ lat: 27.7172, lng: 85.3240 });
     }
   }, []);
 
@@ -69,7 +76,15 @@ const MapPage = () => {
     return distance < 1 ? `${(distance * 1000).toFixed(0)} m` : `${distance.toFixed(1)} km`;
   };
 
-  // Show loading only while data is loading OR maps not loaded yet
+  const handleRefresh = () => {
+    toast({
+      title: "Refreshing map data...",
+      description: "Loading latest donations and locations",
+    });
+    refetch();
+  };
+
+  // Show loading while maps or data is loading
   if (!mapsLoaded || dataLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -140,32 +155,74 @@ const MapPage = () => {
                   onClick={() => setFilterType("all")}
                   className="h-12 shadow-lg"
                 >
-                  All
+                  All ({markers.length})
                 </Button>
                 <Button
                   variant={filterType === "donation" ? "default" : "secondary"}
                   onClick={() => setFilterType("donation")}
                   className="h-12 shadow-lg"
                 >
-                  🍎 Donations
+                  🍎 Donations ({markers.filter(m => m.type === "donation").length})
                 </Button>
                 <Button
                   variant={filterType === "ngo" ? "default" : "secondary"}
                   onClick={() => setFilterType("ngo")}
                   className="h-12 shadow-lg"
                 >
-                  🏢 NGOs
+                  🏢 NGOs ({markers.filter(m => m.type === "ngo").length})
                 </Button>
                 <Button
                   variant={filterType === "volunteer" ? "default" : "secondary"}
                   onClick={() => setFilterType("volunteer")}
                   className="h-12 shadow-lg"
                 >
-                  🚴 Volunteers
+                  🚴 Volunteers ({markers.filter(m => m.type === "volunteer").length})
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleRefresh}
+                  className="h-12 shadow-lg"
+                  title="Refresh map data"
+                >
+                  <RefreshCw className="w-5 h-5" />
                 </Button>
               </div>
             </div>
           </div>
+
+          {/* Data Error Banner */}
+          {dataError && (
+            <div className="absolute top-20 left-4 right-4 z-30">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center justify-between backdrop-blur">
+                <div className="flex items-center gap-3">
+                  <span className="text-destructive">⚠️</span>
+                  <div>
+                    <p className="text-sm font-medium text-destructive">Error loading map data</p>
+                    <p className="text-xs text-muted-foreground">{dataError}</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  Retry
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* No Markers Message */}
+          {!dataError && markers.length === 0 && (
+            <div className="absolute top-20 left-4 right-4 z-30">
+              <div className="bg-card/95 backdrop-blur border border-border rounded-lg p-4 flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">No locations found on the map</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Legend */}
           <div className="absolute bottom-4 left-4 z-30">
@@ -230,6 +287,12 @@ const MapPage = () => {
                   </button>
                 </div>
 
+                {selectedMarker.description && (
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {selectedMarker.description}
+                  </p>
+                )}
+
                 {selectedMarker.type === "donation" && (
                   <div className="flex gap-2 mb-4 flex-wrap">
                     {selectedMarker.foodType && (
@@ -240,7 +303,7 @@ const MapPage = () => {
                     {selectedMarker.quantity && (
                       <Badge variant="secondary" className="bg-green-100 text-green-700">
                         <Scale className="w-3 h-3 mr-1" />
-                        {selectedMarker.quantity} {selectedMarker.quantityUnit || "servings"}
+                        {selectedMarker.quantity} {selectedMarker.quantityUnit || "units"}
                       </Badge>
                     )}
                     {selectedMarker.expiryDate && (
@@ -255,6 +318,12 @@ const MapPage = () => {
                       </Badge>
                     )}
                   </div>
+                )}
+
+                {selectedMarker.donor?.name && (
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Donated by <span className="font-medium">{selectedMarker.donor.name}</span>
+                  </p>
                 )}
 
                 <div className="flex gap-3">

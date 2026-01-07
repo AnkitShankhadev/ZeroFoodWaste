@@ -1,4 +1,3 @@
-// This file remains exactly the same as your original
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 
@@ -14,176 +13,138 @@ export interface MapMarker {
   expiryDate?: string;
   foodType?: string;
   organizationName?: string;
+  description?: string;
+  donor?: {
+    name: string;
+  };
 }
 
 export function useMapData() {
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // const fetchData = async () => {
-  //   try {
-  //     // Fetch donations
-  //     const donationsResponse = await api.getDonations({ status: "CREATED" });
-  //     const donations = donationsResponse.data?.donations || [];
-
-  //     // Fetch NGOs
-  //     const ngosResponse = await api.getUsers({ role: "NGO" });
-  //     const ngos = ngosResponse.data?.users || [];
-
-  //     // Fetch Volunteers
-  //     const volunteersResponse = await api.getUsers({ role: "VOLUNTEER" });
-  //     const volunteers = volunteersResponse.data?.users || [];
-
-  //     // Combine all markers
-  //     const allMarkers: MapMarker[] = [
-  //       ...donations
-  //         .filter((d: any) => d.location?.lat && d.location?.lng)
-  //         .map((d: any) => ({
-  //           id: d._id || d.id,
-  //           type: "donation" as const,
-  //           title: d.foodType || "Food Donation",
-  //           latitude: d.location.lat,
-  //           longitude: d.location.lng,
-  //           status: d.status,
-  //           quantity: d.quantity,
-  //           quantityUnit: d.quantity,
-  //           expiryDate: d.expiryDate,
-  //           foodType: d.foodType,
-  //         })),
-  //       ...ngos
-  //         .filter((n: any) => n.location?.lat && n.location?.lng)
-  //         .map((n: any) => ({
-  //           id: n._id || n.id,
-  //           type: "ngo" as const,
-  //           title: n.name || "NGO",
-  //           latitude: n.location.lat,
-  //           longitude: n.location.lng,
-  //           organizationName: n.name,
-  //         })),
-  //       ...volunteers
-  //         .filter((v: any) => v.location?.lat && v.location?.lng)
-  //         .map((v: any) => ({
-  //           id: v._id || v.id,
-  //           type: "volunteer" as const,
-  //           title: v.name || "Volunteer",
-  //           latitude: v.location.lat,
-  //           longitude: v.location.lng,
-  //         })),
-  //     ];
-
-  //     setMarkers(allMarkers);
-  //   } catch (error) {
-  //     console.error("Error fetching map data:", error);
-  //     // Set mock data for development
-  //     setMarkers([
-  //       {
-  //         id: "1",
-  //         type: "donation",
-  //         title: "Fresh Vegetables",
-  //         latitude: 28.6139,
-  //         longitude: 77.2090,
-  //         status: "CREATED",
-  //         foodType: "Vegetables",
-  //         quantity: 10,
-  //       },
-  //       {
-  //         id: "2",
-  //         type: "ngo",
-  //         title: "Food Bank NGO",
-  //         latitude: 28.7041,
-  //         longitude: 77.1025,
-  //       },
-  //     ]);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      // 🔧 TEMPORARY: Use mock data (Kathmandu-focused)
-      // Remove this block later when backend auth is fixed
-      console.log("🌍 Using mock data - API calls disabled due to auth error");
-      
-      setMarkers([
-        {
-          id: "1",
-          type: "donation" as const,
-          title: "Fresh Vegetables - Thamel",
-          latitude: 27.7172,  // Kathmandu
-          longitude: 85.3240,
-          status: "CREATED",
-          foodType: "Vegetables",
-          quantity: 15,
-          quantityUnit: "kg",
-          expiryDate: "2026-01-10",
-        },
-        {
-          id: "2",
-          type: "donation" as const,
-          title: "Rice & Dal Packets",
-          latitude: 27.7095,
-          longitude: 85.3187,
-          status: "CREATED",
-          foodType: "Rice",
-          quantity: 20,
-          quantityUnit: "kg",
-        },
-        {
-          id: "3",
-          type: "ngo" as const,
-          title: "Food Bank Nepal",
-          latitude: 27.7172,
-          longitude: 85.3240,
-          organizationName: "Food Bank Nepal",
-        },
-        {
-          id: "4",
-          type: "volunteer" as const,
-          title: "Ram - Volunteer",
-          latitude: 27.7100,
-          longitude: 85.3300,
-        },
-        {
-          id: "5",
-          type: "volunteer" as const,
-          title: "Sita - Volunteer",
-          latitude: 27.7200,
-          longitude: 85.3100,
-        },
-        {
-          id: "6",
-          type: "donation" as const,
-          title: "Bread Loaves",
-          latitude: 27.7150,
-          longitude: 85.3200,
-          status: "CREATED",
-          foodType: "Bread",
-          quantity: 50,
-          quantityUnit: "pieces",
-        }
+      console.log("🌍 Fetching map data from backend...");
+
+      // Fetch all data in parallel
+      const [donationsResponse, ngosResponse, volunteersResponse] = await Promise.allSettled([
+        api.getDonations({ status: "CREATED" }),
+        api.getUsers({ role: "NGO" }),
+        api.getUsers({ role: "VOLUNTEER" }),
       ]);
-  
+
+      const allMarkers: MapMarker[] = [];
+
+      // Process donations
+      if (donationsResponse.status === "fulfilled" && donationsResponse.value.success) {
+        const donations = donationsResponse.value.data?.donations || [];
+        console.log(`📦 Loaded ${donations.length} donations`);
+        
+        donations.forEach((d: any) => {
+          // Check for location data in multiple formats
+          const lat = d.location?.lat || d.location?.latitude || d.latitude;
+          const lng = d.location?.lng || d.location?.longitude || d.longitude;
+          
+          if (lat && lng) {
+            allMarkers.push({
+              id: d._id || d.id,
+              type: "donation",
+              title: d.title || d.foodType || "Food Donation",
+              latitude: parseFloat(lat),
+              longitude: parseFloat(lng),
+              status: d.status,
+              quantity: d.quantity,
+              quantityUnit: d.quantityUnit,
+              expiryDate: d.expiryDate,
+              foodType: d.foodType,
+              description: d.description,
+              donor: d.donor,
+            });
+          }
+        });
+      } else {
+        console.warn("⚠️ Failed to load donations:", donationsResponse);
+      }
+
+      // Process NGOs
+      if (ngosResponse.status === "fulfilled" && ngosResponse.value.success) {
+        const ngos = ngosResponse.value.data?.users || [];
+        console.log(`🏢 Loaded ${ngos.length} NGOs`);
+        
+        ngos.forEach((n: any) => {
+          const lat = n.location?.lat || n.location?.latitude || n.latitude;
+          const lng = n.location?.lng || n.location?.longitude || n.longitude;
+          
+          if (lat && lng) {
+            allMarkers.push({
+              id: n._id || n.id,
+              type: "ngo",
+              title: n.name || "NGO",
+              latitude: parseFloat(lat),
+              longitude: parseFloat(lng),
+              organizationName: n.name,
+              description: n.description,
+            });
+          }
+        });
+      } else {
+        console.warn("⚠️ Failed to load NGOs:", ngosResponse);
+      }
+
+      // Process Volunteers
+      if (volunteersResponse.status === "fulfilled" && volunteersResponse.value.success) {
+        const volunteers = volunteersResponse.value.data?.users || [];
+        console.log(`🚴 Loaded ${volunteers.length} volunteers`);
+        
+        volunteers.forEach((v: any) => {
+          const lat = v.location?.lat || v.location?.latitude || v.latitude;
+          const lng = v.location?.lng || v.location?.longitude || v.longitude;
+          
+          if (lat && lng) {
+            allMarkers.push({
+              id: v._id || v.id,
+              type: "volunteer",
+              title: v.name || "Volunteer",
+              latitude: parseFloat(lat),
+              longitude: parseFloat(lng),
+              description: v.description,
+            });
+          }
+        });
+      } else {
+        console.warn("⚠️ Failed to load volunteers:", volunteersResponse);
+      }
+
+      console.log(`✅ Total markers loaded: ${allMarkers.length}`);
+      
+      // If we have no markers at all, show error
+      if (allMarkers.length === 0) {
+        console.warn("⚠️ No markers with valid coordinates found");
+        setError("No locations found on the map");
+      }
+      
+      setMarkers(allMarkers);
+
     } catch (error) {
       console.error("❌ Map data error:", error);
-      // Ultimate fallback
-      setMarkers([{
-        id: "fallback",
-        type: "donation" as const,
-        title: "Test Donation - Kathmandu",
-        latitude: 27.7172,
-        longitude: 85.3240,
-      }]);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load map data";
+      setError(errorMessage);
+      
+      // Set empty array instead of mock data
+      setMarkers([]);
     } finally {
       setIsLoading(false);
     }
   };
-  
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  return { markers, isLoading, refetch: fetchData };
+  return { markers, isLoading, error, refetch: fetchData };
 }
