@@ -25,9 +25,9 @@ exports.protect = async (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
 
     // Get user from token
-    req.user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('-password');
 
-    if (!req.user) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'User not found',
@@ -35,18 +35,24 @@ exports.protect = async (req, res, next) => {
     }
 
     // Check if user is active
-    if (req.user.status !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE') {
       return res.status(403).json({
         success: false,
         message: 'Account is not active',
       });
     }
 
+    // ✅ FIX: Set both req.user and req.user.id for compatibility
+    req.user = user;
+    req.user.id = user._id.toString(); // Ensure .id property exists
+
     next();
   } catch (error) {
+    console.error('Auth error:', error.message);
     return res.status(401).json({
       success: false,
       message: 'Not authorized to access this route',
+      error: error.message,
     });
   }
 };
@@ -64,12 +70,17 @@ exports.optionalAuth = async (req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
+      const user = await User.findById(decoded.id).select('-password');
+      
+      if (user) {
+        req.user = user;
+        req.user.id = user._id.toString();
+      }
     } catch (error) {
       // Ignore error for optional auth
+      console.log('Optional auth failed:', error.message);
     }
   }
 
   next();
 };
-

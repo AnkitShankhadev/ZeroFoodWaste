@@ -47,37 +47,36 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({
-  children,
-}: {
-  children: ReactNode;
-}): JSX.Element {
+export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
 
   // Load user from token on mount
   useEffect(() => {
     const loadUser = async () => {
+      const token = localStorage.getItem("token");
+      
       if (token) {
         try {
           const response = await api.getMe();
-          if (response.success && response.data.user) {
+          if (response.success && response.data?.user) {
             setUser(response.data.user);
           } else {
-            // Invalid token, remove it
-            setToken(null);
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
           }
         } catch (error) {
           console.error("Failed to load user:", error);
-          setToken(null);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
         }
       }
+      
       setIsLoading(false);
     };
 
     loadUser();
-  }, [token]);
+  }, []);
 
   const signUp = async (
     name: string,
@@ -88,6 +87,8 @@ export function AuthProvider({
     phone?: string
   ): Promise<{ error: Error | null }> => {
     try {
+      console.log("📝 Registering user:", { name, email, role, location, phone });
+
       const response = await api.register({
         name,
         email,
@@ -97,17 +98,24 @@ export function AuthProvider({
         phone,
       });
 
-      if (response.success && response.data.token) {
-        setToken(response.data.token);
-        setUser(response.data.user);
+      console.log("✅ Registration response:", response);
+
+      // ✅ FIX: Get token from root level or data.token
+      const token = response.token || response.data?.token;
+      const userData = response.data?.user;
+
+      if (token && userData) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
         return { error: null };
       }
 
-      return { error: new Error("Registration failed") };
-    } catch (error) {
+      return { error: new Error("No token received from server") };
+    } catch (error: any) {
+      console.error("❌ Registration error:", error);
       return {
-        error:
-          error instanceof Error ? error : new Error("Registration failed"),
+        error: error instanceof Error ? error : new Error(error.message || "Registration failed"),
       };
     }
   };
@@ -117,19 +125,28 @@ export function AuthProvider({
     password: string
   ): Promise<{ error: Error | null }> => {
     try {
+      console.log("🔐 Signing in:", email);
+
       const response = await api.login(email, password);
 
-      if (response.success && response.data.token) {
-        setToken(response.data.token);
-        setUser(response.data.user);
+      console.log("✅ Login response:", response);
+
+      // ✅ FIX: Get token from root level or data.token
+      const token = response.token || response.data?.token;
+      const userData = response.data?.user;
+
+      if (token && userData) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(userData));
+        setUser(userData);
         return { error: null };
       }
 
-      return { error: new Error("Login failed") };
-    } catch (error) {
+      return { error: new Error("No token received from server") };
+    } catch (error: any) {
+      console.error("❌ Login error:", error);
       return {
-        error:
-          error instanceof Error ? error : new Error("Invalid credentials"),
+        error: error instanceof Error ? error : new Error(error.message || "Invalid credentials"),
       };
     }
   };
@@ -140,7 +157,8 @@ export function AuthProvider({
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      setToken(null);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       setUser(null);
     }
   };
@@ -153,15 +171,14 @@ export function AuthProvider({
       const response = await api.updatePassword(currentPassword, newPassword);
 
       if (response.success && response.token) {
-        setToken(response.token);
+        localStorage.setItem("token", response.token);
         return { error: null };
       }
 
       return { error: new Error("Password update failed") };
-    } catch (error) {
+    } catch (error: any) {
       return {
-        error:
-          error instanceof Error ? error : new Error("Password update failed"),
+        error: error instanceof Error ? error : new Error("Password update failed"),
       };
     }
   };
@@ -169,8 +186,9 @@ export function AuthProvider({
   const refreshUser = async (): Promise<void> => {
     try {
       const response = await api.getMe();
-      if (response.success && response.data.user) {
+      if (response.success && response.data?.user) {
         setUser(response.data.user);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
       }
     } catch (error) {
       console.error("Failed to refresh user:", error);

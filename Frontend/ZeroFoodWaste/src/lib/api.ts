@@ -1,23 +1,19 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
-// Helper function to get auth token from localStorage
 const getAuthToken = (): string | null => {
   return localStorage.getItem("token");
 };
 
-// Generic API request function
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const token = getAuthToken();
   
-  // Convert headers to a plain object
   const headersObj: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  // Merge existing headers if provided
   if (options.headers) {
     if (options.headers instanceof Headers) {
       options.headers.forEach((value, key) => {
@@ -32,34 +28,43 @@ async function apiRequest<T>(
     }
   }
 
-  // Add authorization token if available
   if (token) {
     headersObj.Authorization = `Bearer ${token}`;
   }
+
+  console.log(`🌐 ${options.method || 'GET'} ${endpoint}`);
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: headersObj,
   });
 
+  const data = await response.json();
+  console.log(`📥 Response (${response.status}):`, data);
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    throw new Error(data.message || `HTTP error! status: ${response.status}`);
   }
 
-  return response.json();
+  return data;
 }
 
 export const api = {
-  // Auth
   login: (email: string, password: string) =>
-    apiRequest<{ success: boolean; data: { user: any; token: string } }>("/auth/login", {
+    apiRequest<{ success: boolean; token: string; data: { user: any } }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (data: { name: string; email: string; password: string; role: string; location?: any; phone?: string }) =>
-    apiRequest<{ success: boolean; data: { user: any; token: string } }>("/auth/register", {
+  register: (data: { 
+    name: string; 
+    email: string; 
+    password: string; 
+    role: string; 
+    location?: any; 
+    phone?: string 
+  }) =>
+    apiRequest<{ success: boolean; token: string; data: { user: any } }>("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -80,7 +85,6 @@ export const api = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 
-  // Donations
   getDonations: (params?: { status?: string; page?: number; limit?: number }) => {
     const query = new URLSearchParams();
     if (params?.status) query.append("status", params.status);
@@ -96,11 +100,8 @@ export const api = {
     }),
 
   getDonation: (id: string) =>
-    apiRequest<{ success: boolean; data: { donation: any } }>(`/donations/${id}`, {
-      method: "GET",
-    }),
+    apiRequest<{ success: boolean; data: { donation: any } }>(`/donations/${id}`),
 
-  // Users
   getUsers: (params?: { role?: string; status?: string }) => {
     const query = new URLSearchParams();
     if (params?.role) query.append("role", params.role);
@@ -109,9 +110,7 @@ export const api = {
   },
 
   getUser: (id: string) =>
-    apiRequest<{ success: boolean; data: { user: any } }>(`/users/${id}`, {
-      method: "GET",
-    }),
+    apiRequest<{ success: boolean; data: { user: any } }>(`/users/${id}`),
 
   updateUser: (id: string, data: any) =>
     apiRequest<{ success: boolean; data: { user: any } }>(`/users/${id}`, {
@@ -119,5 +118,3 @@ export const api = {
       body: JSON.stringify(data),
     }),
 };
-
-

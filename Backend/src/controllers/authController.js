@@ -41,6 +41,7 @@ exports.register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
+      token, // ✅ FIX: Token at root level for frontend
       data: {
         user: {
           id: user._id,
@@ -49,7 +50,6 @@ exports.register = async (req, res, next) => {
           role: user.role,
           location: user.location,
         },
-        token,
       },
     });
   } catch (error) {
@@ -88,6 +88,7 @@ exports.login = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      token, // ✅ FIX: Token at root level for frontend
       data: {
         user: {
           id: user._id,
@@ -97,7 +98,6 @@ exports.login = async (req, res, next) => {
           location: user.location,
           totalPoints: user.totalPoints,
         },
-        token,
       },
     });
   } catch (error) {
@@ -178,4 +178,3 @@ exports.updatePassword = async (req, res, next) => {
     next(error);
   }
 };
-

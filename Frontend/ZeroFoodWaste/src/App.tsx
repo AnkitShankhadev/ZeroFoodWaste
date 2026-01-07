@@ -4,7 +4,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import { LandingPage } from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import { DonationsPage } from "./pages/DonationsPage";
+import  DonationsPage  from "./pages/DonationsPage";
 import { CreateDonationPage } from "./pages/CreateDonationPage";
 import MapPage from "./pages/MapPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
