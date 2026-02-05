@@ -1,55 +1,64 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const pickupAssignmentSchema = new mongoose.Schema({
-  donationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'FoodDonation',
-    required: [true, 'Donation ID is required'],
-    unique: true,
+const pickupAssignmentSchema = new mongoose.Schema(
+  {
+    donationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FoodDonation",
+      required: true,
+    },
+    volunteerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
+      default: "PENDING",
+    },
+    assignedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    pickedUpAt: {
+      type: Date,
+    },
+    completedAt: {
+      type: Date,
+    },
+    cancelledAt: {
+      type: Date,
+    },
+    cancellationReason: {
+      type: String,
+    },
+    notes: {
+      type: String,
+    },
+    // Optional: Add proof of delivery
+    proofOfDelivery: {
+      imageUrl: String,
+      signature: String,
+      timestamp: Date,
+    },
   },
-  volunteerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Volunteer ID is required'],
+  {
+    timestamps: true,
   },
-  status: {
-    type: String,
-    enum: ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
-    default: 'PENDING',
-  },
-  assignedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  startedAt: {
-    type: Date,
-  },
-  completedAt: {
-    type: Date,
-  },
-  cancelledAt: {
-    type: Date,
-  },
-  cancellationReason: {
-    type: String,
-  },
-  notes: {
-    type: String,
-    maxlength: [500, 'Notes cannot exceed 500 characters'],
-  },
-  rating: {
-    type: Number,
-    min: 1,
-    max: 5,
-  },
-  feedback: {
-    type: String,
-    maxlength: [500, 'Feedback cannot exceed 500 characters'],
-  },
-});
+);
 
+// Index for faster queries
 pickupAssignmentSchema.index({ volunteerId: 1, status: 1 });
 pickupAssignmentSchema.index({ donationId: 1 });
+pickupAssignmentSchema.index({ status: 1 });
 
-module.exports = mongoose.model('PickupAssignment', pickupAssignmentSchema);
+// Virtual for delivery duration
+pickupAssignmentSchema.virtual("deliveryDuration").get(function () {
+  if (this.completedAt && this.assignedAt) {
+    return Math.floor((this.completedAt - this.assignedAt) / (1000 * 60)); // in minutes
+  }
+  return null;
+});
 
+module.exports = mongoose.model("Assignment", pickupAssignmentSchema);

@@ -18,6 +18,7 @@ import {
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const statusColors: Record<string, string> = {
   CREATED: "bg-green-100 text-green-700",
@@ -60,6 +61,7 @@ const Donations = () => {
   const [donations, setDonations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchDonations = async () => {
@@ -97,11 +99,33 @@ const Donations = () => {
       (d.description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (d.foodType?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (d.location?.address?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (d.donor?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+      (d.donorId?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesType = !selectedType || d.foodType === selectedType;
     return matchesSearch && matchesType;
   });
+  
+  const handleAcceptDonation = async (id: string) => {
+    try {
+      const response = await api.acceptDonation(id);
+      const updated = response.data?.donation;
+
+      toast({
+        title: "Donation accepted",
+        description: "You have accepted this donation.",
+      });
+
+      setDonations((prev) =>
+        prev.map((d) => (d._id === updated._id ? updated : d))
+      );
+    } catch (err: any) {
+      toast({
+        title: "Could not accept donation",
+        description: err.message || "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -181,6 +205,7 @@ const Donations = () => {
             </div>
           )}
 
+
           {/* Donations Grid */}
           {!isLoading && !error && filteredDonations.length > 0 && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -228,19 +253,31 @@ const Donations = () => {
                   </div>
 
                   {/* Footer */}
-                  <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center justify-between">
+                  <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center justify-between gap-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Donated by</p>
                       <p className="text-sm font-medium text-foreground">
-                        {donation.donor?.name || "Anonymous"}
+                        {donation.donorId?.name || "Anonymous"}
                       </p>
                     </div>
-                    <Link to={`/donations/${donation._id || donation.id}`}>
-                      <Button variant="ghost" size="sm" className="gap-1">
-                        View
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      {user?.role === "NGO" && donation.status === "CREATED" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => handleAcceptDonation(donation._id || donation.id)}
+                        >
+                          Accept
+                        </Button>
+                      )}
+                      <Link to={`/donations/${donation._id || donation.id}`}>
+                        <Button variant="ghost" size="sm" className="gap-1">
+                          View
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </motion.div>
               ))}

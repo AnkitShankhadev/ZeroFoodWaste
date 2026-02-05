@@ -60,7 +60,19 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         try {
           const response = await api.getMe();
           if (response.success && response.data?.user) {
-            setUser(response.data.user);
+            const apiUser = response.data.user as any;
+            const normalizedUser: User = {
+              id: apiUser.id || apiUser._id,
+              name: apiUser.name,
+              email: apiUser.email,
+              role: apiUser.role,
+              location: apiUser.location,
+              totalPoints: apiUser.totalPoints,
+              phone: apiUser.phone,
+              status: apiUser.status,
+            };
+            setUser(normalizedUser);
+            localStorage.setItem("user", JSON.stringify(normalizedUser));
           } else {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
@@ -101,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       console.log("✅ Registration response:", response);
 
       // ✅ FIX: Get token from root level or data.token
-      const token = response.token || response.data?.token;
+      const token = response.token;
       const userData = response.data?.user;
 
       if (token && userData) {
@@ -123,30 +135,30 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const signIn = async (
     email: string,
     password: string
-  ): Promise<{ error: Error | null }> => {
+  ): Promise<{ error: Error | null; user?: any }> => {  // ✅ Add user?: any to return type
     try {
       console.log("🔐 Signing in:", email);
-
+  
       const response = await api.login(email, password);
-
+  
       console.log("✅ Login response:", response);
-
-      // ✅ FIX: Get token from root level or data.token
-      const token = response.token || response.data?.token;
+  
+      const token = response.token;
       const userData = response.data?.user;
-
+  
       if (token && userData) {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
-        return { error: null };
+        return { error: null, user: userData };  // ✅ Return user
       }
-
-      return { error: new Error("No token received from server") };
+  
+      return { error: new Error("No token received from server"), user: undefined };
     } catch (error: any) {
       console.error("❌ Login error:", error);
       return {
         error: error instanceof Error ? error : new Error(error.message || "Invalid credentials"),
+        user: undefined,
       };
     }
   };
@@ -187,8 +199,19 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     try {
       const response = await api.getMe();
       if (response.success && response.data?.user) {
-        setUser(response.data.user);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+        const apiUser = response.data.user as any;
+        const normalizedUser: User = {
+          id: apiUser.id || apiUser._id,
+          name: apiUser.name,
+          email: apiUser.email,
+          role: apiUser.role,
+          location: apiUser.location,
+          totalPoints: apiUser.totalPoints,
+          phone: apiUser.phone,
+          status: apiUser.status,
+        };
+        setUser(normalizedUser);
+        localStorage.setItem("user", JSON.stringify(normalizedUser));
       }
     } catch (error) {
       console.error("Failed to refresh user:", error);

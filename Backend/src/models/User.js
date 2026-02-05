@@ -50,6 +50,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  // Fields for password reset functionality
+  passwordResetToken: String,
+  passwordResetExpires: Date,
   profileImage: {
     type: String,
     default: '',

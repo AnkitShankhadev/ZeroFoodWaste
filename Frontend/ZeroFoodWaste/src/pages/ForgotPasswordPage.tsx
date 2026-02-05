@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Leaf, Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 type ForgotPasswordStep = "email" | "sent" | "reset";
 
@@ -15,21 +16,45 @@ const ForgotPasswordPage = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const tokenFromUrl = searchParams.get("token") || "";
+  const emailFromUrl = searchParams.get("email") || "";
+
+  // If user opened the page with a valid token param, go directly to reset step
+  useEffect(() => {
+    if (tokenFromUrl) {
+      setStep("reset");
+      if (emailFromUrl) {
+        setEmail(emailFromUrl);
+      }
+    }
+  }, [tokenFromUrl, emailFromUrl]);
 
   const handleSendReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await api.forgotPassword(email);
 
-    toast({
-      title: "Reset link sent!",
-      description: "Check your email for the password reset link.",
-    });
+      toast({
+        title: "Reset link sent",
+        description:
+          response.message || "If that email is registered, a reset link has been sent.",
+      });
 
-    setIsLoading(false);
-    setStep("sent");
+      setStep("sent");
+    } catch (error: any) {
+      toast({
+        title: "Could not send reset link",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -55,15 +80,35 @@ const ForgotPasswordPage = () => {
 
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (!tokenFromUrl) {
+      toast({
+        title: "Invalid reset link",
+        description: "The reset link is missing or invalid. Please request a new one.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
 
-    toast({
-      title: "Password reset successful!",
-      description: "You can now log in with your new password.",
-    });
+    try {
+      const response = await api.resetPassword(tokenFromUrl, newPassword);
 
-    setIsLoading(false);
+      toast({
+        title: "Password reset successful!",
+        description: response.message || "You can now log in with your new password.",
+      });
+
+      // After successful reset, redirect to login
+      navigate("/auth");
+    } catch (error: any) {
+      toast({
+        title: "Password reset failed",
+        description: error.message || "The reset link may be invalid or expired.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

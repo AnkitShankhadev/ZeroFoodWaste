@@ -33,7 +33,7 @@ const foodDonationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['CREATED', 'ACCEPTED', 'ASSIGNED', 'COMPLETED', 'CANCELLED'],
+    enum: ['CREATED', 'ACCEPTED', 'ASSIGNED', 'IN_TRANSIT','DELIVERED', 'CANCELLED','EXPIRED'],
     default: 'CREATED',
   },
   location: {

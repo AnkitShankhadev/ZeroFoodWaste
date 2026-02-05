@@ -17,24 +17,21 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const navLinks = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/donations", label: "Donations", icon: Gift },
-  { href: "/map", label: "Map", icon: Map },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-];
+
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, signOut } = useAuth();
+  
 
   const handleLogout = async () => {
     await signOut();
     navigate("/");
     setIsOpen(false);
   };
+
+  const { isAuthenticated, user, signOut } = useAuth();
 
   const getDashboardPath = () => {
     if (!user) return "/dashboard/donor";
@@ -46,6 +43,20 @@ export const Navbar = () => {
     };
     return roleMap[user.role] || "/dashboard/donor";
   };
+  const navLinks = [
+    {
+      href: user?.role === 'DONOR' ? '/dashboard/donor' 
+            : user?.role === 'NGO' ? '/dashboard/ngo'
+            : user?.role === 'VOLUNTEER' ? '/dashboard/volunteer'
+            : user?.role === 'ADMIN' ? '/dashboard/admin'
+            : '/dashboard',
+        label: "Home", 
+        icon: Home 
+    },
+    { href: "/donations", label: "Donations", icon: Gift },
+    { href: "/map", label: "Map", icon: Map },
+    { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">

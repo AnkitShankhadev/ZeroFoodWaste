@@ -67,9 +67,14 @@ const Auth = () => {
   }, [searchParams]);
 
   const getLocation = () => {
-    setIsGettingLocation(true);
+    console.log("🔍 getLocation called");
+    console.log("🌐 Protocol:", window.location.protocol);
+    console.log("🗺️ Navigator geolocation available:", !!navigator.geolocation);
     
+    setIsGettingLocation(true);
+  
     if (!navigator.geolocation) {
+      console.error("❌ Geolocation not supported");
       toast({
         title: "Geolocation not supported",
         description: "Please enter your address manually",
@@ -79,33 +84,75 @@ const Auth = () => {
       return;
     }
 
+    console.log("📍 Requesting current position...");
+  
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setFormData({
-          ...formData,
+        console.log("✅ Success! Position received:", position);
+        console.log("📌 Latitude:", position.coords.latitude);
+        console.log("📌 Longitude:", position.coords.longitude);
+        console.log("📏 Accuracy:", position.coords.accuracy, "meters");
+        
+        setFormData((prev) => ({
+          ...prev,
           location: {
-            ...formData.location,
+            ...prev.location,
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          }
-        });
+          },
+        }));
+  
         toast({
           title: "Location detected",
-          description: "Your location has been captured successfully",
+          description: `Lat: ${position.coords.latitude.toFixed(4)}, Lng: ${position.coords.longitude.toFixed(4)}`,
         });
+  
         setIsGettingLocation(false);
       },
       (error) => {
-        console.error("Geolocation error:", error);
+        console.error("❌ Geolocation error:", error);
+        console.error("Error code:", error.code);
+        console.error("Error message:", error.message);
+        
+        let errorMessage = "Could not get your location. Please enter manually.";
+        let errorTitle = "Location error";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorTitle = "Permission Denied";
+            errorMessage = "You denied location access. Please enable it in your browser settings or enter address manually.";
+            console.error("🚫 User denied location permission");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorTitle = "Position Unavailable";
+            errorMessage = "Location information unavailable. Check GPS settings or enter address manually.";
+            console.error("📍 Position unavailable");
+            break;
+          case error.TIMEOUT:
+            errorTitle = "Request Timeout";
+            errorMessage = "Location request timed out. Weak GPS signal. Please try again or enter manually.";
+            console.error("⏱️ Geolocation request timed out");
+            break;
+        }
+  
         toast({
-          title: "Location error",
-          description: "Could not get your location. Please enter manually.",
+          title: errorTitle,
+          description: errorMessage,
           variant: "destructive",
         });
+  
         setIsGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 30000,
+        maximumAge: 300000,
       }
     );
+    
+    console.log("⏳ Waiting for geolocation response...");
   };
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +160,7 @@ const Auth = () => {
 
     try {
       if (mode === "login") {
-        const { error } = await signIn(formData.email, formData.password);
+        const { error, user } = await signIn(formData.email, formData.password);  // ✅ Destructure user
         
         if (error) {
           toast({
@@ -126,9 +173,18 @@ const Auth = () => {
             title: "Welcome back!",
             description: "You've successfully logged in.",
           });
-          navigate("/dashboard/donor");
+          
+          // ✅ Use the actual user role from backend
+          const dashboardMap: Record<string, string> = {
+            VOLUNTEER: "/dashboard/volunteer",
+            DONOR: "/dashboard/donor",
+            NGO: "/dashboard/ngo",
+          };
+          
+          // ✅ Navigate based on user's actual role
+          navigate(dashboardMap[user?.role] || "/dashboard/donor");
         }
-      } else {
+      }else {
         // Register - validate required fields
         if (!formData.name) {
           toast({
@@ -140,10 +196,11 @@ const Auth = () => {
           return;
         }
 
-        if (!formData.location.lat || !formData.location.lng) {
+        // Validate location - either GPS coordinates OR manual address is required
+        if ((!formData.location.lat || !formData.location.lng) && !formData.location.address.trim()) {
           toast({
             title: "Location required",
-            description: "Please provide your location or use the 'Get My Location' button",
+            description: "Please either use 'Get My Location' or enter your address manually",
             variant: "destructive",
           });
           setIsLoading(false);
@@ -425,7 +482,11 @@ const Auth = () => {
                     exit={{ opacity: 0, height: 0 }}
                     className="space-y-3"
                   >
-                    <Label>Location *</Label>
+                    <Label>Location </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Use GPS or enter your address manually
+                    </p>
+                    
                     <Button
                       type="button"
                       variant="outline"
@@ -441,27 +502,38 @@ const Auth = () => {
                       ) : (
                         <>
                           <MapPin className="w-4 h-4 mr-2" />
-                          Get My Location
+                          Use My Current Location
                         </>
                       )}
                     </Button>
                     
                     {formData.location.lat !== 0 && formData.location.lng !== 0 && (
-                      <p className="text-sm text-green-600 flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Location captured: {formData.location.lat.toFixed(4)}, {formData.location.lng.toFixed(4)}
-                      </p>
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm text-green-700 flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          GPS Location: {formData.location.lat.toFixed(4)}, {formData.location.lng.toFixed(4)}
+                        </p>
+                      </div>
                     )}
 
-                    <Input
-                      placeholder="Or enter your address manually"
-                      value={formData.location.address}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        location: { ...formData.location, address: e.target.value }
-                      })}
-                      className="h-12"
-                    />
+               
+
+                    <div>
+                      <Input
+                        placeholder="Enter your address (e.g., Kathmandu, Nepal)"
+                        value={formData.location.address}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          location: { ...formData.location, address: e.target.value }
+                        })}
+                        className="h-12"
+                      />
+                      {formData.location.address && (
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          ✓ Address entered
+                        </p>
+                      )}
+                    </div>
                   </motion.div>
                 </>
               )}

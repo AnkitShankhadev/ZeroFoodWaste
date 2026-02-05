@@ -1,24 +1,31 @@
 const express = require('express');
 const router = express.Router();
-const {
-  findNearbyNGOs,
-  findNearbyVolunteers,
-  findNearbyDonations,
-  assignVolunteer,
-  getMyAssignments,
-  updateAssignmentStatus,
-} = require('../controllers/matchingController');
+const matchingController = require('../controllers/matchingController');
 const { protect } = require('../middleware/authMiddleware');
-const { volunteerOnly, ngoOrVolunteer, authorize } = require('../middleware/roleMiddleware');
+const { authorize } = require('../middleware/roleMiddleware');
 
-router.use(protect); // All routes require authentication
+// All routes require authentication
+router.use(protect);
 
-router.get('/nearby-ngos', findNearbyNGOs);
-router.get('/nearby-volunteers', findNearbyVolunteers);
-router.get('/nearby-donations', findNearbyDonations);
-router.post('/assign-volunteer', authorize('NGO', 'ADMIN'), assignVolunteer);
-router.get('/my-assignments', volunteerOnly, getMyAssignments);
-router.put('/assignments/:id/status', volunteerOnly, updateAssignmentStatus);
+// Find nearby entities
+router.get('/nearby-ngos', matchingController.findNearbyNGOs);
+router.get('/nearby-volunteers', matchingController.findNearbyVolunteers);
+router.get('/nearby-donations', matchingController.findNearbyDonations);
+
+// NGO assigns volunteer to donation
+router.post('/assign-volunteer', authorize('NGO', 'ADMIN'), matchingController.assignVolunteer);
+
+// Volunteer routes
+router.get('/my-assignments', authorize('VOLUNTEER'), matchingController.getMyAssignments);
+router.put('/assignments/:id/status', authorize('VOLUNTEER'), matchingController.updateAssignmentStatus);
+
+// Volunteers can see available tasks
+router.get('/available-for-pickup', authorize('VOLUNTEER'), matchingController.getAvailableForPickup);
+
+// Volunteer self-assigns to a task
+router.post('/accept-task/:donationId', authorize('VOLUNTEER'), matchingController.volunteerAcceptTask);
+
+// Complete assignment (convenience endpoint)
+router.post('/assignments/:id/complete', authorize('VOLUNTEER'), matchingController.completeAssignment);
 
 module.exports = router;
-

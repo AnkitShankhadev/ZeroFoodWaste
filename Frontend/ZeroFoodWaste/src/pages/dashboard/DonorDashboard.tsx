@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,64 +21,122 @@ import {
   Star,
   Leaf,
 } from "lucide-react";
+import { api } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
-const recentDonations = [
-  {
-    id: 1,
-    title: "Fresh Vegetables",
-    quantity: "15 kg",
-    status: "completed",
-    date: "2024-01-15",
-    ngo: "Food For All",
-  },
-  {
-    id: 2,
-    title: "Bread & Pastries",
-    quantity: "8 kg",
-    status: "picked_up",
-    date: "2024-01-14",
-    ngo: "Community Kitchen",
-  },
-  {
-    id: 3,
-    title: "Cooked Meals",
-    quantity: "20 portions",
-    status: "accepted",
-    date: "2024-01-13",
-    ngo: "Hunger Relief",
-  },
-  {
-    id: 4,
-    title: "Dairy Products",
-    quantity: "10 kg",
-    status: "pending",
-    date: "2024-01-12",
-    ngo: null,
-  },
-];
+type DonationStatus = "CREATED" | "ACCEPTED" | "ASSIGNED" | "COMPLETED" | "CANCELLED";
 
-const achievements = [
-  { id: 1, name: "First Donation", icon: Star, unlocked: true },
-  { id: 2, name: "100kg Saved", icon: Trophy, unlocked: true },
-  { id: 3, name: "Regular Donor", icon: Award, unlocked: true },
-  { id: 4, name: "500kg Hero", icon: Leaf, unlocked: false },
-];
+interface Donation {
+  _id: string;
+  foodType: string;
+  quantity: number;
+  unit?: string;
+  status: DonationStatus;
+  expiryDate: string;
+  createdAt: string;
+  donorId: {
+    name: string;
+    email: string;
+  };
+  acceptedBy?: {
+    name: string;
+  } | null;
+}
 
-const statusColors = {
-  pending: "bg-amber-100 text-amber-700 border-amber-200",
-  accepted: "bg-blue-100 text-blue-700 border-blue-200",
-  picked_up: "bg-purple-100 text-purple-700 border-purple-200",
-  completed: "bg-green-100 text-green-700 border-green-200",
+const statusColors: Record<DonationStatus | "PENDING" | "ACTIVE", string> = {
+  CREATED: "bg-amber-100 text-amber-700 border-amber-200",
+  ACCEPTED: "bg-blue-100 text-blue-700 border-blue-200",
+  ASSIGNED: "bg-purple-100 text-purple-700 border-purple-200",
+  COMPLETED: "bg-green-100 text-green-700 border-green-200",
+  CANCELLED: "bg-red-100 text-red-700 border-red-200",
+  PENDING: "bg-amber-100 text-amber-700 border-amber-200",
+  ACTIVE: "bg-blue-100 text-blue-700 border-blue-200",
 };
 
-const statusLabels = {
-  pending: "Pending",
-  accepted: "Accepted",
-  picked_up: "Picked Up",
-  completed: "Completed",
+const statusLabels: Record<DonationStatus | "PENDING" | "ACTIVE", string> = {
+  CREATED: "Pending",
+  ACCEPTED: "Accepted",
+  ASSIGNED: "Assigned",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+  PENDING: "Pending",
+  ACTIVE: "Active",
 };
 
 const DonorDashboard = () => {
+  const { user } = useAuth();
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadDonations = async () => {
+      if (!user?.id) return;
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await api.getDonations({
+          donorId: user.id,
+          limit: 50,
+        });
+
+        const mine = response.data?.donations || [];
+        setDonations(mine);
+      } catch (err: any) {
+        console.error("Failed to load donations:", err);
+        setError(err.message || "Failed to load donations");
+        toast({
+          title: "Could not load donations",
+          description: err.message || "Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDonations();
+  }, [user]);
+
+  const stats = useMemo(() => {
+    const total = donations.length;
+    const completed = donations.filter((d) => d.status === "COMPLETED").length;
+    const active = donations.filter(
+      (d) => d.status === "CREATED" || d.status === "ACCEPTED" || d.status === "ASSIGNED"
+    ).length;
+
+    const totalQuantity = donations
+      .filter((d) => d.status === "COMPLETED")
+      .reduce((sum, d) => sum + (Number(d.quantity) || 0), 0);
+
+    return {
+      total,
+      completed,
+      active,
+      totalQuantity,
+    };
+  }, [donations]);
+
+  const recentDonations = useMemo(
+    () =>
+      [...donations]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt || b.expiryDate).getTime() -
+            new Date(a.createdAt || a.expiryDate).getTime()
+        )
+        .slice(0, 5),
+    [donations]
+  );
+
+  const achievements = [
+    { id: 1, name: "First Donation", icon: Star, unlocked: stats.completed >= 1 },
+    { id: 2, name: "10 Donations", icon: Trophy, unlocked: stats.completed >= 10 },
+    { id: 3, name: "Active Donor", icon: Award, unlocked: stats.active >= 3 },
+    { id: 4, name: "Impact Hero", icon: Leaf, unlocked: stats.totalQuantity >= 100 },
+  ];
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -88,13 +147,13 @@ const DonorDashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                Welcome back, John! 👋
+                Welcome back, {user?.name || "Donor"}! 👋
               </h1>
               <p className="text-muted-foreground mt-1">
                 Here's what's happening with your donations
               </p>
             </div>
-            <Link to="/donations/new">
+            <Link to="/create-donation">
               <Button variant="hero" size="lg" className="gap-2">
                 <Plus className="w-5 h-5" />
                 New Donation
@@ -106,33 +165,33 @@ const DonorDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {[
               {
-                title: "Total Donated",
-                value: "245 kg",
-                change: "+12% this month",
+                title: "Total Donations",
+                value: stats.total.toString(),
+                change: `${stats.completed} completed`,
                 icon: Package,
                 color: "text-primary",
                 bg: "bg-primary/10",
               },
               {
                 title: "Active Donations",
-                value: "3",
-                change: "2 awaiting pickup",
+                value: stats.active.toString(),
+                change: "Pending / accepted / assigned",
                 icon: Clock,
                 color: "text-amber-600",
                 bg: "bg-amber-100",
               },
               {
-                title: "Completed",
-                value: "28",
-                change: "5 this week",
+                title: "Completed Donations",
+                value: stats.completed.toString(),
+                change: `${stats.totalQuantity} total quantity`,
                 icon: CheckCircle,
                 color: "text-green-600",
                 bg: "bg-green-100",
               },
               {
                 title: "Impact Points",
-                value: "1,250",
-                change: "Rank #42",
+                value: (user?.totalPoints ?? 0).toString(),
+                change: "Points earned from your impact",
                 icon: TrendingUp,
                 color: "text-blue-600",
                 bg: "bg-blue-100",
@@ -182,58 +241,72 @@ const DonorDashboard = () => {
                   </Link>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="divide-y divide-border">
-                    {recentDonations.map((donation, index) => (
-                      <motion.div
-                        key={donation.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="p-4 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
-                              <h4 className="font-medium text-foreground">
-                                {donation.title}
-                              </h4>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  statusColors[
-                                    donation.status as keyof typeof statusColors
-                                  ]
-                                }
-                              >
-                                {
-                                  statusLabels[
-                                    donation.status as keyof typeof statusLabels
-                                  ]
-                                }
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Package className="w-4 h-4" />
-                                {donation.quantity}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(donation.date).toLocaleDateString()}
-                              </span>
-                              {donation.ngo && (
+                  {isLoading ? (
+                    <div className="p-6 text-sm text-muted-foreground">
+                      Loading your donations...
+                    </div>
+                  ) : error ? (
+                    <div className="p-6 text-sm text-red-600">{error}</div>
+                  ) : recentDonations.length === 0 ? (
+                    <div className="p-6 text-sm text-muted-foreground">
+                      You haven&apos;t created any donations yet. Create your first one to see it here.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {recentDonations.map((donation, index) => (
+                        <motion.div
+                          key={donation._id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="p-4 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-1">
+                                <h4 className="font-medium text-foreground">
+                                  {donation.foodType}
+                                </h4>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    statusColors[
+                                      (donation.status as DonationStatus) || "PENDING"
+                                    ]
+                                  }
+                                >
+                                  {
+                                    statusLabels[
+                                      (donation.status as DonationStatus) || "PENDING"
+                                    ]
+                                  }
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
-                                  <MapPin className="w-4 h-4" />
-                                  {donation.ngo}
+                                  <Package className="w-4 h-4" />
+                                  {donation.quantity} {donation.unit || ""}
                                 </span>
-                              )}
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(
+                                    donation.createdAt || donation.expiryDate
+                                  ).toLocaleDateString()}
+                                </span>
+                                {donation.acceptedBy?.name && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {donation.acceptedBy.name}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
                           </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -251,10 +324,10 @@ const DonorDashboard = () => {
                 <CardContent>
                   <div className="text-center mb-4">
                     <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary to-green-600 text-white text-2xl font-bold mb-2">
-                      12
+                      {Math.max(1, Math.floor((user?.totalPoints ?? 0) / 100) + 1)}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Level 12 Donor
+                      Level {Math.max(1, Math.floor((user?.totalPoints ?? 0) / 100) + 1)} Donor
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -262,9 +335,11 @@ const DonorDashboard = () => {
                       <span className="text-muted-foreground">
                         Progress to Level 13
                       </span>
-                      <span className="font-medium">750/1000 pts</span>
+                      <span className="font-medium">
+                        {(user?.totalPoints ?? 0) % 100}/100 pts
+                      </span>
                     </div>
-                    <Progress value={75} className="h-2" />
+                    <Progress value={((user?.totalPoints ?? 0) % 100)} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
