@@ -33,7 +33,7 @@ const AchievementsShowcase = () => {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"achievements" | "badges">(
-    "achievements"
+    "achievements",
   );
 
   useEffect(() => {
@@ -178,7 +178,7 @@ const AchievementsShowcase = () => {
                         year: "numeric",
                         month: "short",
                         day: "numeric",
-                      }
+                      },
                     )}
                   </p>
                 )}
@@ -212,7 +212,9 @@ const AchievementsShowcase = () => {
                 >
                   <Card className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200 h-full flex flex-col items-center text-center">
                     <div className="text-6xl mb-4">{badge.icon}</div>
-                    <h3 className="font-bold text-lg mb-1">{badge.badgeName}</h3>
+                    <h3 className="font-bold text-lg mb-1">
+                      {badge.badgeName}
+                    </h3>
                     <p className="text-sm text-gray-600 mb-4 capitalize">
                       {badge.badgeType}
                     </p>
@@ -264,8 +266,7 @@ const AchievementsShowcase = () => {
             <p className="text-sm text-gray-600 mb-1">Progress</p>
             <p className="text-2xl font-bold text-pink-600">
               {Math.round(
-                ((earnedCount + badges.length) /
-                  (totalAchievements + 6)) * 100
+                ((earnedCount + badges.length) / (totalAchievements + 6)) * 100,
               )}
               %
             </p>

@@ -1,19 +1,19 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const achievementSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'User ID is required'],
+    ref: "User",
+    required: [true, "User ID is required"],
   },
   type: {
     type: String,
-    enum: ['DONATION', 'PICKUP', 'STREAK', 'MILESTONE', 'SPECIAL'],
-    required: [true, 'Achievement type is required'],
+    enum: ["DONATION", "PICKUP", "STREAK", "MILESTONE", "SPECIAL"],
+    required: [true, "Achievement type is required"],
   },
   title: {
     type: String,
-    required: [true, 'Title is required'],
+    required: [true, "Title is required"],
     trim: true,
   },
   description: {
@@ -22,7 +22,7 @@ const achievementSchema = new mongoose.Schema({
   },
   icon: {
     type: String,
-    default: '🏅',
+    default: "🏅",
   },
   pointsAwarded: {
     type: Number,
@@ -43,5 +43,4 @@ const achievementSchema = new mongoose.Schema({
 achievementSchema.index({ userId: 1, earnedAt: -1 });
 achievementSchema.index({ userId: 1, type: 1 });
 
-module.exports = mongoose.model('Achievement', achievementSchema);
-
+module.exports = mongoose.model("Achievement", achievementSchema);

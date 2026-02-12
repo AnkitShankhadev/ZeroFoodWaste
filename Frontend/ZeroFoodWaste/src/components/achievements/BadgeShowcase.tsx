@@ -34,7 +34,7 @@ const BadgeShowcase = () => {
         }
         if (badgesRes.success) {
           const badgeTypes = new Set(
-            badgesRes.data.map((b: any) => b.badgeType.toUpperCase())
+            badgesRes.data.map((b: any) => b.badgeType.toUpperCase()),
           );
           setEarnedBadges(badgeTypes);
         }
@@ -57,10 +57,7 @@ const BadgeShowcase = () => {
 
   const getProgressPercentage = (pointsRequired: number): number => {
     if (!user?.totalPoints) return 0;
-    return Math.min(
-      (user.totalPoints / pointsRequired) * 100,
-      100
-    );
+    return Math.min((user.totalPoints / pointsRequired) * 100, 100);
   };
 
   const earnedCount = earnedBadges.size;
@@ -121,7 +118,7 @@ const BadgeShowcase = () => {
           const progress = getProgressPercentage(badge.pointsRequired);
           const pointsNeeded = Math.max(
             0,
-            badge.pointsRequired - (user?.totalPoints || 0)
+            badge.pointsRequired - (user?.totalPoints || 0),
           );
 
           return (
@@ -215,7 +212,9 @@ const BadgeShowcase = () => {
 
       {/* Achievement Tips */}
       <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h3 className="font-semibold text-blue-900 mb-2">💡 How to Earn More Points:</h3>
+        <h3 className="font-semibold text-blue-900 mb-2">
+          💡 How to Earn More Points:
+        </h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>🎁 Donate food items ({"+5 pts"} per donation)</li>
           <li>✅ Complete deliveries ({"+10 pts"} per pickup)</li>

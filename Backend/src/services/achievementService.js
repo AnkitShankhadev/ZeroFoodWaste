@@ -1,25 +1,25 @@
-const Achievement = require('../models/Achievement');
-const Badge = require('../models/Badge');
-const User = require('../models/User');
-const Points = require('../models/Points');
+const Achievement = require("../models/Achievement");
+const Badge = require("../models/Badge");
+const User = require("../models/User");
+const Points = require("../models/Points");
 const {
   DONOR_ACHIEVEMENTS,
   NGO_ACHIEVEMENTS,
   VOLUNTEER_ACHIEVEMENTS,
   BADGES,
-} = require('../config/achievements');
-const notificationService = require('./notificationService');
+} = require("../config/achievements");
+const notificationService = require("./notificationService");
 
 /**
  * Get achievements for a role
  */
 const getAchievementsByRole = (role) => {
   switch (role) {
-    case 'DONOR':
+    case "DONOR":
       return DONOR_ACHIEVEMENTS;
-    case 'NGO':
+    case "NGO":
       return NGO_ACHIEVEMENTS;
-    case 'VOLUNTEER':
+    case "VOLUNTEER":
       return VOLUNTEER_ACHIEVEMENTS;
     default:
       return [];
@@ -32,7 +32,9 @@ const getAchievementsByRole = (role) => {
 const awardAchievement = async (userId, achievementId, role) => {
   try {
     const achievementList = getAchievementsByRole(role);
-    const achievementConfig = achievementList.find((a) => a.id === achievementId);
+    const achievementConfig = achievementList.find(
+      (a) => a.id === achievementId,
+    );
 
     if (!achievementConfig) {
       console.log(`Achievement ${achievementId} not found for role ${role}`);
@@ -75,7 +77,7 @@ const awardAchievement = async (userId, achievementId, role) => {
       await Points.create({
         userId,
         points: achievementConfig.pointsAwarded,
-        source: 'ACHIEVEMENT',
+        source: "ACHIEVEMENT",
         description: `Achievement unlocked: ${achievementConfig.title}`,
         role,
       });
@@ -88,13 +90,13 @@ const awardAchievement = async (userId, achievementId, role) => {
     await notificationService.createNotification(
       userId,
       `🎉 Achievement Unlocked: ${achievementConfig.title}! You earned ${achievementConfig.pointsAwarded} points.`,
-      'BADGE_EARNED',
-      achievement._id
+      "BADGE_EARNED",
+      achievement._id,
     );
 
     return achievement;
   } catch (error) {
-    console.error('Error awarding achievement:', error.message);
+    console.error("Error awarding achievement:", error.message);
     throw error;
   }
 };
@@ -107,7 +109,7 @@ const checkAndAwardBadges = async (userId) => {
     const user = await User.findById(userId);
     if (!user) return;
 
-    const badgeOrder = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'];
+    const badgeOrder = ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"];
 
     for (const badgeType of badgeOrder) {
       const badgeConfig = BADGES[badgeType];
@@ -128,13 +130,13 @@ const checkAndAwardBadges = async (userId) => {
         await notificationService.createNotification(
           userId,
           `🏅 Badge Unlocked: ${badgeConfig.name}! ${badgeConfig.icon}`,
-          'BADGE_EARNED',
-          badge._id
+          "BADGE_EARNED",
+          badge._id,
         );
       }
     }
   } catch (error) {
-    console.error('Error checking badges:', error.message);
+    console.error("Error checking badges:", error.message);
   }
 };
 
@@ -144,7 +146,9 @@ const checkAndAwardBadges = async (userId) => {
 const checkAchievementTrigger = async (userId, role, trigger, currentValue) => {
   try {
     const achievementList = getAchievementsByRole(role);
-    const relevantAchievements = achievementList.filter((a) => a.trigger === trigger);
+    const relevantAchievements = achievementList.filter(
+      (a) => a.trigger === trigger,
+    );
 
     for (const achievement of relevantAchievements) {
       if (currentValue >= achievement.targetValue) {
@@ -152,7 +156,7 @@ const checkAchievementTrigger = async (userId, role, trigger, currentValue) => {
       }
     }
   } catch (error) {
-    console.error('Error checking achievement trigger:', error.message);
+    console.error("Error checking achievement trigger:", error.message);
   }
 };
 
@@ -165,7 +169,9 @@ const getUserAchievements = async (userId, role) => {
     const userAchievements = await Achievement.find({ userId }).lean();
 
     const enhancedAchievements = achievementList.map((achievement) => {
-      const earned = userAchievements.find((ua) => ua.title === achievement.title);
+      const earned = userAchievements.find(
+        (ua) => ua.title === achievement.title,
+      );
       return {
         ...achievement,
         earnedAt: earned ? earned.earnedAt : null,
@@ -175,7 +181,7 @@ const getUserAchievements = async (userId, role) => {
 
     return enhancedAchievements;
   } catch (error) {
-    console.error('Error getting user achievements:', error.message);
+    console.error("Error getting user achievements:", error.message);
     throw error;
   }
 };
@@ -187,7 +193,7 @@ const getUserBadges = async (userId) => {
   try {
     return await Badge.find({ userId }).sort({ earnedAt: -1 }).lean();
   } catch (error) {
-    console.error('Error getting user badges:', error.message);
+    console.error("Error getting user badges:", error.message);
     throw error;
   }
 };

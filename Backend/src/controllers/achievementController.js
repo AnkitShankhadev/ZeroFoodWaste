@@ -1,8 +1,8 @@
-const Achievement = require('../models/Achievement');
-const Badge = require('../models/Badge');
-const User = require('../models/User');
-const achievementService = require('../services/achievementService');
-const { AppError } = require('../middleware/errorHandler');
+const Achievement = require("../models/Achievement");
+const Badge = require("../models/Badge");
+const User = require("../models/User");
+const achievementService = require("../services/achievementService");
+const { AppError } = require("../middleware/errorHandler");
 
 /**
  * @desc    Get user's achievements with earned status
@@ -15,12 +15,12 @@ exports.getAchievements = async (req, res, next) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return next(new AppError('User not found', 404));
+      return next(new AppError("User not found", 404));
     }
 
     const achievements = await achievementService.getUserAchievements(
       userId,
-      user.role
+      user.role,
     );
 
     res.status(200).json({
@@ -64,7 +64,9 @@ exports.getBadges = async (req, res, next) => {
  */
 exports.getRoleAchievements = async (req, res, next) => {
   try {
-    const achievements = achievementService.getAllRoleAchievements(req.user.role);
+    const achievements = achievementService.getAllRoleAchievements(
+      req.user.role,
+    );
 
     res.status(200).json({
       success: true,
@@ -109,12 +111,12 @@ exports.getStats = async (req, res, next) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return next(new AppError('User not found', 404));
+      return next(new AppError("User not found", 404));
     }
 
     const achievements = await achievementService.getUserAchievements(
       userId,
-      user.role
+      user.role,
     );
     const badges = await achievementService.getUserBadges(userId);
 
@@ -137,4 +139,3 @@ exports.getStats = async (req, res, next) => {
     next(error);
   }
 };
-

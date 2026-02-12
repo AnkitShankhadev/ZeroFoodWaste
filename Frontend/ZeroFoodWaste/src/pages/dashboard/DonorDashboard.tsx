@@ -25,7 +25,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
-type DonationStatus = "CREATED" | "ACCEPTED" | "ASSIGNED" | "COMPLETED" | "CANCELLED";
+type DonationStatus = "CREATED" | "ACCEPTED" | "ASSIGNED" | "DELIVERED" | "CANCELLED";
 
 interface Donation {
   _id: string;
@@ -48,7 +48,7 @@ const statusColors: Record<DonationStatus | "PENDING" | "ACTIVE", string> = {
   CREATED: "bg-amber-100 text-amber-700 border-amber-200",
   ACCEPTED: "bg-blue-100 text-blue-700 border-blue-200",
   ASSIGNED: "bg-purple-100 text-purple-700 border-purple-200",
-  COMPLETED: "bg-green-100 text-green-700 border-green-200",
+  DELIVERED: "bg-green-100 text-green-700 border-green-200",
   CANCELLED: "bg-red-100 text-red-700 border-red-200",
   PENDING: "bg-amber-100 text-amber-700 border-amber-200",
   ACTIVE: "bg-blue-100 text-blue-700 border-blue-200",
@@ -58,7 +58,7 @@ const statusLabels: Record<DonationStatus | "PENDING" | "ACTIVE", string> = {
   CREATED: "Pending",
   ACCEPTED: "Accepted",
   ASSIGNED: "Assigned",
-  COMPLETED: "Completed",
+  DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
   PENDING: "Pending",
   ACTIVE: "Active",
@@ -102,13 +102,13 @@ const DonorDashboard = () => {
 
   const stats = useMemo(() => {
     const total = donations.length;
-    const completed = donations.filter((d) => d.status === "COMPLETED").length;
+    const completed = donations.filter((d) => d.status === "DELIVERED").length;
     const active = donations.filter(
       (d) => d.status === "CREATED" || d.status === "ACCEPTED" || d.status === "ASSIGNED"
     ).length;
 
     const totalQuantity = donations
-      .filter((d) => d.status === "COMPLETED")
+      .filter((d) => d.status === "DELIVERED")
       .reduce((sum, d) => sum + (Number(d.quantity) || 0), 0);
 
     return {
