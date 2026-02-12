@@ -213,13 +213,7 @@ const NGODashboard = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" size="lg" className="gap-2">
-                <Bell className="w-5 h-5" />
-                <span className="sr-only md:not-sr-only">Notifications</span>
-                <Badge className="bg-destructive text-destructive-foreground ml-1">
-                  5
-                </Badge>
-              </Button>
+             
               <Link to="/map">
                 <Button variant="hero" size="lg" className="gap-2">
                   <MapPin className="w-5 h-5" />
@@ -378,9 +372,11 @@ const NGODashboard = () => {
                             </p>
                           </div>
                           <div className="flex gap-2">
+                            <Link to={`/donations/${donation._id}`}>
                             <Button variant="outline" size="sm">
                               <Eye className="w-4 h-4" />
                             </Button>
+                            </Link>
                             <Button variant="hero" size="sm">
                               Accept
                             </Button>

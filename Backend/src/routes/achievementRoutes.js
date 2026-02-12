@@ -4,14 +4,18 @@ const {
   getAchievements,
   getBadges,
   getStats,
+  getRoleAchievements,
+  getBadgeLevels,
 } = require('../controllers/achievementController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.use(protect); // All routes require authentication
 
-router.get('/', getAchievements);
-router.get('/badges', getBadges);
 router.get('/stats', getStats);
+router.get('/role', getRoleAchievements);
+router.get('/badges/levels', getBadgeLevels);
+router.get('/badges', getBadges);
+router.get('/', getAchievements);
 
 module.exports = router;
 

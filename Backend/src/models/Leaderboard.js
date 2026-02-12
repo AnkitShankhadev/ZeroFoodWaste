@@ -1,16 +1,16 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const leaderboardSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'User ID is required'],
+    ref: "User",
+    required: [true, "User ID is required"],
     unique: true,
   },
   role: {
     type: String,
-    enum: ['DONOR', 'NGO', 'VOLUNTEER'],
-    required: [true, 'Role is required'],
+    enum: ["DONOR", "NGO", "VOLUNTEER"],
+    required: [true, "Role is required"],
   },
   totalPoints: {
     type: Number,
@@ -22,6 +22,10 @@ const leaderboardSchema = new mongoose.Schema({
     default: 0,
   },
   donationsCount: {
+    type: Number,
+    default: 0,
+  },
+  collectionsCount: {
     type: Number,
     default: 0,
   },
@@ -46,5 +50,4 @@ const leaderboardSchema = new mongoose.Schema({
 leaderboardSchema.index({ role: 1, totalPoints: -1 });
 leaderboardSchema.index({ userId: 1 });
 
-module.exports = mongoose.model('Leaderboard', leaderboardSchema);
-
+module.exports = mongoose.model("Leaderboard", leaderboardSchema);

@@ -2,28 +2,24 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { 
-  Leaf, 
-  Menu, 
-  X, 
-  Home, 
-  Gift, 
-  Map, 
-  Trophy, 
-  User,
+import {
+  Leaf,
+  Menu,
+  X,
+  Home,
+  Gift,
+  Map,
+  Trophy,
   LogIn,
   LogOut,
-  UserCircle
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-
+import { NotificationDropdown } from "./NotificationDropdown";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  
 
   const handleLogout = async () => {
     await signOut();
@@ -43,19 +39,42 @@ export const Navbar = () => {
     };
     return roleMap[user.role] || "/dashboard/donor";
   };
-  const navLinks = [
+
+  // Base navigation links
+  const baseNavLinks = [
     {
-      href: user?.role === 'DONOR' ? '/dashboard/donor' 
-            : user?.role === 'NGO' ? '/dashboard/ngo'
-            : user?.role === 'VOLUNTEER' ? '/dashboard/volunteer'
-            : user?.role === 'ADMIN' ? '/dashboard/admin'
-            : '/dashboard',
-        label: "Home", 
-        icon: Home 
+      href:
+        user?.role === "DONOR"
+          ? "/dashboard/donor"
+          : user?.role === "NGO"
+            ? "/dashboard/ngo"
+            : user?.role === "VOLUNTEER"
+              ? "/dashboard/volunteer"
+              : user?.role === "ADMIN"
+                ? "/dashboard/admin"
+                : "/",
+      label: "Home",
+      icon: Home,
+      requiresAuth: false,
     },
-    { href: "/donations", label: "Donations", icon: Gift },
-    { href: "/map", label: "Map", icon: Map },
-    { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  ];
+
+  // Protected navigation links (only show when authenticated)
+  const protectedNavLinks = [
+    { href: "/donations", label: "Donations", icon: Gift, requiresAuth: true },
+    { href: "/map", label: "Map", icon: Map, requiresAuth: true },
+    {
+      href: "/leaderboard",
+      label: "Leaderboard",
+      icon: Trophy,
+      requiresAuth: true,
+    },
+  ];
+
+  // Filter navLinks based on authentication status
+  const navLinks = [
+    ...baseNavLinks,
+    ...(isAuthenticated ? protectedNavLinks : []),
   ];
 
   return (
@@ -95,13 +114,29 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <Link to={getDashboardPath()}>
+                <NotificationDropdown />
+                <Link to="/profile" className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" className="gap-2">
-                    <UserCircle className="w-4 h-4" />
+                    {user?.profileImage ? (
+                      <img
+                        src={user.profileImage}
+                        alt={user.name}
+                        className="w-5 h-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-xs font-bold text-white">
+                        {user?.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                    )}
                     {user?.name || "Dashboard"}
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm" className="gap-2" onClick={handleLogout}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleLogout}
+                >
                   <LogOut className="w-4 h-4" />
                   Logout
                 </Button>
@@ -163,13 +198,52 @@ export const Navbar = () => {
                 <div className="pt-4 border-t border-border space-y-2">
                   {isAuthenticated ? (
                     <>
-                      <Link to={getDashboardPath()} onClick={() => setIsOpen(false)}>
+                      <div className="px-2 py-2">
+                        <p className="text-xs text-muted-foreground font-semibold mb-2 px-2">
+                          Notifications
+                        </p>
+                        <NotificationDropdown />
+                      </div>
+                      <Link to="/profile" onClick={() => setIsOpen(false)}>
                         <Button variant="outline" className="w-full gap-2">
-                          <UserCircle className="w-4 h-4" />
+                          {user?.profileImage ? (
+                            <img
+                              src={user.profileImage}
+                              alt={user.name}
+                              className="w-4 h-4 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-xs font-bold text-white">
+                              {user?.name?.charAt(0).toUpperCase() || "U"}
+                            </div>
+                          )}
+                          Profile
+                        </Button>
+                      </Link>
+                      <Link
+                        to={getDashboardPath()}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Button variant="outline" className="w-full gap-2">
+                          {user?.profileImage ? (
+                            <img
+                              src={user.profileImage}
+                              alt={user.name}
+                              className="w-4 h-4 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-xs font-bold text-white">
+                              {user?.name?.charAt(0).toUpperCase() || "U"}
+                            </div>
+                          )}
                           {user?.name || "Dashboard"}
                         </Button>
                       </Link>
-                      <Button variant="ghost" className="w-full gap-2" onClick={handleLogout}>
+                      <Button
+                        variant="ghost"
+                        className="w-full gap-2"
+                        onClick={handleLogout}
+                      >
                         <LogOut className="w-4 h-4" />
                         Logout
                       </Button>

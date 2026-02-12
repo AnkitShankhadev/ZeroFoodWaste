@@ -1,6 +1,6 @@
-const Leaderboard = require('../models/Leaderboard');
-const User = require('../models/User');
-const { AppError } = require('../middleware/errorHandler');
+const Leaderboard = require("../models/Leaderboard");
+const User = require("../models/User");
+const { AppError } = require("../middleware/errorHandler");
 
 /**
  * @desc    Get leaderboard by role
@@ -9,14 +9,14 @@ const { AppError } = require('../middleware/errorHandler');
  */
 exports.getLeaderboard = async (req, res, next) => {
   try {
-    const { role = 'DONOR', limit = 100 } = req.query;
+    const { role = "DONOR", limit = 100 } = req.query;
 
-    if (!['DONOR', 'NGO', 'VOLUNTEER'].includes(role)) {
-      return next(new AppError('Invalid role', 400));
+    if (!["DONOR", "NGO", "VOLUNTEER"].includes(role)) {
+      return next(new AppError("Invalid role", 400));
     }
 
     const leaderboard = await Leaderboard.find({ role })
-      .populate('userId', 'name email profileImage')
+      .populate("userId", "name email profileImage")
       .sort({ totalPoints: -1 })
       .limit(parseInt(limit));
 
@@ -41,12 +41,12 @@ exports.getMyRank = async (req, res, next) => {
   try {
     const userRole = req.user.role;
 
-    if (!['DONOR', 'NGO', 'VOLUNTEER'].includes(userRole)) {
+    if (!["DONOR", "NGO", "VOLUNTEER"].includes(userRole)) {
       return res.status(200).json({
         success: true,
         data: {
           rank: null,
-          message: 'Ranking not available for this role',
+          message: "Ranking not available for this role",
         },
       });
     }
@@ -72,8 +72,15 @@ exports.getMyRank = async (req, res, next) => {
         rank: leaderboardEntry.rank,
         totalPoints: leaderboardEntry.totalPoints,
         totalUsers,
-        percentile: totalUsers > 0 ? ((totalUsers - leaderboardEntry.rank + 1) / totalUsers * 100).toFixed(2) : 0,
+        percentile:
+          totalUsers > 0
+            ? (
+                ((totalUsers - leaderboardEntry.rank + 1) / totalUsers) *
+                100
+              ).toFixed(2)
+            : 0,
         donationsCount: leaderboardEntry.donationsCount,
+        collectionsCount: leaderboardEntry.collectionsCount,
         pickupsCount: leaderboardEntry.pickupsCount,
         achievementsCount: leaderboardEntry.achievementsCount,
         badgesCount: leaderboardEntry.badgesCount,
@@ -94,12 +101,12 @@ exports.getTopUsers = async (req, res, next) => {
     const { role, limit = 10 } = req.query;
 
     const query = {};
-    if (role && ['DONOR', 'NGO', 'VOLUNTEER'].includes(role)) {
+    if (role && ["DONOR", "NGO", "VOLUNTEER"].includes(role)) {
       query.role = role;
     }
 
     const topUsers = await Leaderboard.find(query)
-      .populate('userId', 'name email profileImage role')
+      .populate("userId", "name email profileImage role")
       .sort({ totalPoints: -1 })
       .limit(parseInt(limit));
 
@@ -113,4 +120,3 @@ exports.getTopUsers = async (req, res, next) => {
     next(error);
   }
 };
-

@@ -22,6 +22,7 @@ interface User {
   totalPoints?: number;
   phone?: string;
   status?: string;
+  profileImage?: string;
 }
 
 interface AuthContextType {
@@ -34,20 +35,24 @@ interface AuthContextType {
     password: string,
     role: AppRole,
     location?: any,
-    phone?: string
+    phone?: string,
   ) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updatePassword: (
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
   ) => Promise<{ error: Error | null }>;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem("token");
-      
+
       if (token) {
         try {
           const response = await api.getMe();
@@ -70,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
               totalPoints: apiUser.totalPoints,
               phone: apiUser.phone,
               status: apiUser.status,
+              profileImage: apiUser.profileImage,
             };
             setUser(normalizedUser);
             localStorage.setItem("user", JSON.stringify(normalizedUser));
@@ -83,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
           localStorage.removeItem("user");
         }
       }
-      
+
       setIsLoading(false);
     };
 
@@ -96,10 +102,16 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     password: string,
     role: AppRole,
     location?: any,
-    phone?: string
+    phone?: string,
   ): Promise<{ error: Error | null }> => {
     try {
-      console.log("📝 Registering user:", { name, email, role, location, phone });
+      console.log("📝 Registering user:", {
+        name,
+        email,
+        role,
+        location,
+        phone,
+      });
 
       const response = await api.register({
         name,
@@ -127,37 +139,47 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     } catch (error: any) {
       console.error("❌ Registration error:", error);
       return {
-        error: error instanceof Error ? error : new Error(error.message || "Registration failed"),
+        error:
+          error instanceof Error
+            ? error
+            : new Error(error.message || "Registration failed"),
       };
     }
   };
 
   const signIn = async (
     email: string,
-    password: string
-  ): Promise<{ error: Error | null; user?: any }> => {  // ✅ Add user?: any to return type
+    password: string,
+  ): Promise<{ error: Error | null; user?: any }> => {
+    // ✅ Add user?: any to return type
     try {
       console.log("🔐 Signing in:", email);
-  
+
       const response = await api.login(email, password);
-  
+
       console.log("✅ Login response:", response);
-  
+
       const token = response.token;
       const userData = response.data?.user;
-  
+
       if (token && userData) {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
-        return { error: null, user: userData };  // ✅ Return user
+        return { error: null, user: userData }; // ✅ Return user
       }
-  
-      return { error: new Error("No token received from server"), user: undefined };
+
+      return {
+        error: new Error("No token received from server"),
+        user: undefined,
+      };
     } catch (error: any) {
       console.error("❌ Login error:", error);
       return {
-        error: error instanceof Error ? error : new Error(error.message || "Invalid credentials"),
+        error:
+          error instanceof Error
+            ? error
+            : new Error(error.message || "Invalid credentials"),
         user: undefined,
       };
     }
@@ -177,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
 
   const updatePassword = async (
     currentPassword: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<{ error: Error | null }> => {
     try {
       const response = await api.updatePassword(currentPassword, newPassword);
@@ -190,7 +212,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       return { error: new Error("Password update failed") };
     } catch (error: any) {
       return {
-        error: error instanceof Error ? error : new Error("Password update failed"),
+        error:
+          error instanceof Error ? error : new Error("Password update failed"),
       };
     }
   };
@@ -209,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
           totalPoints: apiUser.totalPoints,
           phone: apiUser.phone,
           status: apiUser.status,
+          profileImage: apiUser.profileImage,
         };
         setUser(normalizedUser);
         localStorage.setItem("user", JSON.stringify(normalizedUser));

@@ -1,27 +1,33 @@
 const Achievement = require('../models/Achievement');
 const Badge = require('../models/Badge');
 const User = require('../models/User');
+const achievementService = require('../services/achievementService');
 const { AppError } = require('../middleware/errorHandler');
 
 /**
- * @desc    Get user achievements
+ * @desc    Get user's achievements with earned status
  * @route   GET /api/achievements
  * @access  Private
  */
 exports.getAchievements = async (req, res, next) => {
   try {
     const userId = req.query.userId || req.user.id;
-    const { type } = req.query;
+    const user = await User.findById(userId);
 
-    const query = { userId };
-    if (type) query.type = type;
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
 
-    const achievements = await Achievement.find(query).sort({ earnedAt: -1 });
+    const achievements = await achievementService.getUserAchievements(
+      userId,
+      user.role
+    );
 
     res.status(200).json({
       success: true,
       data: {
         achievements,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -37,12 +43,49 @@ exports.getAchievements = async (req, res, next) => {
 exports.getBadges = async (req, res, next) => {
   try {
     const userId = req.query.userId || req.user.id;
-    const { badgeType } = req.query;
 
-    const query = { userId };
-    if (badgeType) query.badgeType = badgeType;
+    const badges = await achievementService.getUserBadges(userId);
 
-    const badges = await Badge.find(query).sort({ earnedAt: -1 });
+    res.status(200).json({
+      success: true,
+      data: {
+        badges,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get role-specific achievements
+ * @route   GET /api/achievements/role
+ * @access  Private
+ */
+exports.getRoleAchievements = async (req, res, next) => {
+  try {
+    const achievements = achievementService.getAllRoleAchievements(req.user.role);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        achievements,
+        role: req.user.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get badge levels info
+ * @route   GET /api/achievements/badges/levels
+ * @access  Private
+ */
+exports.getBadgeLevels = async (req, res, next) => {
+  try {
+    const badges = achievementService.getBadgeInfo();
 
     res.status(200).json({
       success: true,
@@ -69,27 +112,25 @@ exports.getStats = async (req, res, next) => {
       return next(new AppError('User not found', 404));
     }
 
-    const achievementsCount = await Achievement.countDocuments({ userId });
-    const badgesCount = await Badge.countDocuments({ userId });
+    const achievements = await achievementService.getUserAchievements(
+      userId,
+      user.role
+    );
+    const badges = await achievementService.getUserBadges(userId);
 
-    // Get recent achievements
-    const recentAchievements = await Achievement.find({ userId })
-      .sort({ earnedAt: -1 })
-      .limit(5);
-
-    // Get recent badges
-    const recentBadges = await Badge.find({ userId })
-      .sort({ earnedAt: -1 })
-      .limit(5);
+    const earnedAchievements = achievements.filter((a) => a.earnedAt);
+    const earnedCount = earnedAchievements.length;
 
     res.status(200).json({
       success: true,
       data: {
         totalPoints: user.totalPoints,
-        achievementsCount,
-        badgesCount,
-        recentAchievements,
-        recentBadges,
+        achievementsEarned: earnedCount,
+        achievementsTotal: achievements.length,
+        badgesEarned: badges.length,
+        role: user.role,
+        achievements: earnedAchievements.slice(0, 5),
+        badges: badges.slice(0, 5),
       },
     });
   } catch (error) {

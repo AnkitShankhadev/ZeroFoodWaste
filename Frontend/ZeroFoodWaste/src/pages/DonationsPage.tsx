@@ -5,15 +5,15 @@ import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, 
-  MapPin, 
-  Clock, 
-  Scale, 
+import {
+  Search,
+  MapPin,
+  Clock,
+  Scale,
   Plus,
   ChevronRight,
   Leaf,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
@@ -49,10 +49,10 @@ const getTimeRemaining = (expiryDate: string) => {
   const diffMs = expiry.getTime() - now.getTime();
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHours / 24);
-  
-  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
-  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
-  return 'Less than 1 hour';
+
+  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? "s" : ""}`;
+  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? "s" : ""}`;
+  return "Less than 1 hour";
 };
 
 const Donations = () => {
@@ -69,14 +69,17 @@ const Donations = () => {
         setIsLoading(true);
         setError(null);
         const response = await api.getDonations();
-        
+
         if (response.success && response.data.donations) {
           setDonations(response.data.donations);
         } else {
           throw new Error("Failed to load donations");
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to load donations. Please try again later.";
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Failed to load donations. Please try again later.";
         setError(errorMessage);
         toast({
           title: "Error",
@@ -91,20 +94,20 @@ const Donations = () => {
     fetchDonations();
   }, []);
 
-  const types = [...new Set(donations.map(d => d.foodType))];
+  const types = [...new Set(donations.map((d) => d.foodType))];
 
-  const filteredDonations = donations.filter(d => {
-    const matchesSearch = 
-      (d.title?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (d.description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (d.foodType?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (d.location?.address?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (d.donorId?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+  const filteredDonations = donations.filter((d) => {
+    const matchesSearch =
+      d.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.foodType?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.location?.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.donorId?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesType = !selectedType || d.foodType === selectedType;
     return matchesSearch && matchesType;
   });
-  
+
   const handleAcceptDonation = async (id: string) => {
     try {
       const response = await api.acceptDonation(id);
@@ -116,7 +119,7 @@ const Donations = () => {
       });
 
       setDonations((prev) =>
-        prev.map((d) => (d._id === updated._id ? updated : d))
+        prev.map((d) => (d._id === updated._id ? updated : d)),
       );
     } catch (err: any) {
       toast({
@@ -130,18 +133,20 @@ const Donations = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Food Donations</h1>
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                Food Donations
+              </h1>
               <p className="text-muted-foreground">
                 Browse available donations near you or create a new listing
               </p>
             </div>
-            <Link to="/donations/new">
+            <Link to="/create-donation">
               <Button variant="hero" className="gap-2">
                 <Plus className="w-5 h-5" />
                 Create Donation
@@ -170,7 +175,7 @@ const Donations = () => {
               >
                 All
               </Button>
-              {types.map(type => (
+              {types.map((type) => (
                 <Button
                   key={type}
                   variant={selectedType === type ? "default" : "outline"}
@@ -197,14 +202,15 @@ const Donations = () => {
               <div className="w-20 h-20 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-4">
                 <span className="text-3xl">⚠️</span>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Error Loading Donations</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                Error Loading Donations
+              </h3>
               <p className="text-muted-foreground mb-6">{error}</p>
               <Button onClick={() => window.location.reload()}>
                 Try Again
               </Button>
             </div>
           )}
-
 
           {/* Donations Grid */}
           {!isLoading && !error && filteredDonations.length > 0 && (
@@ -221,11 +227,19 @@ const Donations = () => {
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
-                        {donation.image || foodTypeEmojis[donation.foodType] || "🍽️"}
+                        {donation.image ||
+                          foodTypeEmojis[donation.foodType] ||
+                          "🍽️"}
                       </div>
-                      <Badge className={statusColors[donation.status] || statusColors.CREATED}>
-                        {donation.status === 'CREATED' ? 'Available' : 
-                         donation.status.charAt(0).toUpperCase() + donation.status.slice(1).toLowerCase()}
+                      <Badge
+                        className={
+                          statusColors[donation.status] || statusColors.CREATED
+                        }
+                      >
+                        {donation.status === "CREATED"
+                          ? "Available"
+                          : donation.status.charAt(0).toUpperCase() +
+                            donation.status.slice(1).toLowerCase()}
                       </Badge>
                     </div>
 
@@ -243,11 +257,13 @@ const Donations = () => {
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Clock className="w-4 h-4" />
-                        {donation.expiryDate ? getTimeRemaining(donation.expiryDate) : "N/A"}
+                        {donation.expiryDate
+                          ? getTimeRemaining(donation.expiryDate)
+                          : "N/A"}
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <MapPin className="w-4 h-4" />
-                        {donation.location?.distance || "N/A"}
+                        {donation.location?.address || "N/A"}
                       </div>
                     </div>
                   </div>
@@ -255,22 +271,27 @@ const Donations = () => {
                   {/* Footer */}
                   <div className="px-6 py-4 bg-muted/30 border-t border-border flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-xs text-muted-foreground">Donated by</p>
+                      <p className="text-xs text-muted-foreground">
+                        Donated by
+                      </p>
                       <p className="text-sm font-medium text-foreground">
                         {donation.donorId?.name || "Anonymous"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {user?.role === "NGO" && donation.status === "CREATED" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => handleAcceptDonation(donation._id || donation.id)}
-                        >
-                          Accept
-                        </Button>
-                      )}
+                      {user?.role === "NGO" &&
+                        donation.status === "CREATED" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() =>
+                              handleAcceptDonation(donation._id || donation.id)
+                            }
+                          >
+                            Accept
+                          </Button>
+                        )}
                       <Link to={`/donations/${donation._id || donation.id}`}>
                         <Button variant="ghost" size="sm" className="gap-1">
                           View
@@ -290,9 +311,11 @@ const Donations = () => {
               <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-4">
                 <Leaf className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">No donations found</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-2">
+                No donations found
+              </h3>
               <p className="text-muted-foreground mb-6">
-                {donations.length === 0 
+                {donations.length === 0
                   ? "No donations available at the moment. Be the first to create one!"
                   : "Try adjusting your filters or create a new donation"}
               </p>

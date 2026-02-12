@@ -20,6 +20,10 @@ const achievementSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  icon: {
+    type: String,
+    default: '🏅',
+  },
   pointsAwarded: {
     type: Number,
     default: 0,

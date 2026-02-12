@@ -1,9 +1,10 @@
-const User = require('../models/User');
-const { generateToken } = require('../utils/tokenGenerator');
-const { AppError } = require('../middleware/errorHandler');
-const crypto = require('crypto');
-const { sendEmail } = require('../utils/emailService');
-const { FRONTEND_URL } = require('../config/env');
+const User = require("../models/User");
+const Leaderboard = require("../models/Leaderboard");
+const { generateToken } = require("../utils/tokenGenerator");
+const { AppError } = require("../middleware/errorHandler");
+const crypto = require("crypto");
+const { sendEmail } = require("../utils/emailService");
+const { FRONTEND_URL } = require("../config/env");
 
 /**
  * @desc    Register a new user
@@ -16,17 +17,17 @@ exports.register = async (req, res, next) => {
 
     // Validation
     if (!name || !email || !password || !role) {
-      return next(new AppError('Please provide all required fields', 400));
+      return next(new AppError("Please provide all required fields", 400));
     }
 
-    if (!['DONOR', 'NGO', 'VOLUNTEER'].includes(role)) {
-      return next(new AppError('Invalid role', 400));
+    if (!["DONOR", "NGO", "VOLUNTEER"].includes(role)) {
+      return next(new AppError("Invalid role", 400));
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return next(new AppError('User already exists with this email', 400));
+      return next(new AppError("User already exists with this email", 400));
     }
 
     // Create user
@@ -37,6 +38,19 @@ exports.register = async (req, res, next) => {
       role,
       location,
       phone,
+    });
+
+    // Create leaderboard entry for new user
+    await Leaderboard.create({
+      userId: user._id,
+      role: user.role,
+      totalPoints: 0,
+      donationsCount: 0,
+      collectionsCount: 0,
+      pickupsCount: 0,
+      achievementsCount: 0,
+      badgesCount: 0,
+      rank: 0,
     });
 
     // Generate token
@@ -71,19 +85,19 @@ exports.login = async (req, res, next) => {
 
     // Validation
     if (!email || !password) {
-      return next(new AppError('Please provide email and password', 400));
+      return next(new AppError("Please provide email and password", 400));
     }
 
     // Check if user exists and get password
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user || !(await user.matchPassword(password))) {
-      return next(new AppError('Invalid credentials', 401));
+      return next(new AppError("Invalid credentials", 401));
     }
 
     // Check if user is active
-    if (user.status !== 'ACTIVE') {
-      return next(new AppError('Account is not active', 403));
+    if (user.status !== "ACTIVE") {
+      return next(new AppError("Account is not active", 403));
     }
 
     // Generate token
@@ -137,7 +151,7 @@ exports.logout = async (req, res, next) => {
   try {
     res.status(200).json({
       success: true,
-      message: 'Logged out successfully',
+      message: "Logged out successfully",
     });
   } catch (error) {
     next(error);
@@ -154,15 +168,15 @@ exports.updatePassword = async (req, res, next) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return next(new AppError('Please provide current and new password', 400));
+      return next(new AppError("Please provide current and new password", 400));
     }
 
     // Get user with password
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.user.id).select("+password");
 
     // Check current password
     if (!(await user.matchPassword(currentPassword))) {
-      return next(new AppError('Current password is incorrect', 401));
+      return next(new AppError("Current password is incorrect", 401));
     }
 
     // Update password
@@ -174,7 +188,7 @@ exports.updatePassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password updated successfully',
+      message: "Password updated successfully",
       token,
     });
   } catch (error) {
@@ -192,7 +206,7 @@ exports.forgotPassword = async (req, res, next) => {
     const { email } = req.body;
 
     if (!email) {
-      return next(new AppError('Please provide an email address', 400));
+      return next(new AppError("Please provide an email address", 400));
     }
 
     const user = await User.findOne({ email });
@@ -201,13 +215,16 @@ exports.forgotPassword = async (req, res, next) => {
       // For security, don't reveal whether email exists
       return res.status(200).json({
         success: true,
-        message: 'If that email is registered, a reset link has been sent',
+        message: "If that email is registered, a reset link has been sent",
       });
     }
 
     // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
 
     user.passwordResetToken = hashedToken;
     user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
@@ -215,11 +232,11 @@ exports.forgotPassword = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     const resetURL = `${FRONTEND_URL}/forgot-password?token=${resetToken}&email=${encodeURIComponent(
-      user.email
+      user.email,
     )}`;
 
     const message = `
-      <p>Hello ${user.name || ''},</p>
+      <p>Hello ${user.name || ""},</p>
       <p>You requested a password reset for your ZeroFoodWaste account.</p>
       <p>Click the button below to reset your password. This link is valid for 1 hour.</p>
       <p>
@@ -236,13 +253,13 @@ exports.forgotPassword = async (req, res, next) => {
     try {
       await sendEmail({
         to: user.email,
-        subject: 'ZeroFoodWaste Password Reset',
+        subject: "ZeroFoodWaste Password Reset",
         html: message,
       });
 
       res.status(200).json({
         success: true,
-        message: 'If that email is registered, a reset link has been sent',
+        message: "If that email is registered, a reset link has been sent",
       });
     } catch (err) {
       // Cleanup on failure
@@ -250,9 +267,12 @@ exports.forgotPassword = async (req, res, next) => {
       user.passwordResetExpires = undefined;
       await user.save({ validateBeforeSave: false });
 
-      console.error('Error sending reset email:', err.message);
+      console.error("Error sending reset email:", err.message);
       return next(
-        new AppError('There was an error sending the email. Please try again later.', 500)
+        new AppError(
+          "There was an error sending the email. Please try again later.",
+          500,
+        ),
       );
     }
   } catch (error) {
@@ -270,18 +290,18 @@ exports.resetPassword = async (req, res, next) => {
     const { token, password } = req.body;
 
     if (!token || !password) {
-      return next(new AppError('Token and new password are required', 400));
+      return next(new AppError("Token and new password are required", 400));
     }
 
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({
       passwordResetToken: hashedToken,
       passwordResetExpires: { $gt: Date.now() },
-    }).select('+password');
+    }).select("+password");
 
     if (!user) {
-      return next(new AppError('Reset token is invalid or has expired', 400));
+      return next(new AppError("Reset token is invalid or has expired", 400));
     }
 
     user.password = password;
@@ -295,7 +315,7 @@ exports.resetPassword = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successful',
+      message: "Password reset successful",
       token: newToken,
       data: {
         user: {

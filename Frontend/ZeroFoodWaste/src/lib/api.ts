@@ -51,6 +51,24 @@ async function apiRequest<T>(
 }
 
 export const api = {
+  // Generic request methods
+  get: <T>(endpoint: string) => apiRequest<T>(endpoint, { method: "GET" }),
+
+  post: <T>(endpoint: string, data: any) =>
+    apiRequest<T>(endpoint, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  put: <T>(endpoint: string, data: any) =>
+    apiRequest<T>(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  delete: <T>(endpoint: string) =>
+    apiRequest<T>(endpoint, { method: "DELETE" }),
+
   login: (email: string, password: string) =>
     apiRequest<{ success: boolean; token: string; data: { user: any } }>(
       "/auth/login",
@@ -218,4 +236,83 @@ export const api = {
         method: "POST",
       },
     ),
+
+  // Notification endpoints
+  getNotifications: (unreadOnly?: boolean, limit?: number) => {
+    const query = new URLSearchParams();
+    if (unreadOnly) query.append("unreadOnly", "true");
+    if (limit) query.append("limit", limit.toString());
+    return apiRequest<{
+      success: boolean;
+      data: { notifications: any[] };
+    }>(`/notifications?${query}`);
+  },
+
+  getUnreadNotificationCount: () =>
+    apiRequest<{ success: boolean; data: { count: number } }>(
+      `/notifications/unread-count`,
+    ),
+
+  markNotificationAsRead: (notificationId: string) =>
+    apiRequest<{ success: boolean; data: { notification: any } }>(
+      `/notifications/${notificationId}/read`,
+      {
+        method: "PUT",
+      },
+    ),
+
+  markAllNotificationsAsRead: () =>
+    apiRequest<{
+      success: boolean;
+      message: string;
+      data: { modifiedCount: number };
+    }>(`/notifications/read-all`, {
+      method: "PUT",
+    }),
+
+  deleteNotification: (notificationId: string) =>
+    apiRequest<{ success: boolean; message: string }>(
+      `/notifications/${notificationId}`,
+      {
+        method: "DELETE",
+      },
+    ),
+
+  // Achievement endpoints
+  getAchievements: () =>
+    apiRequest<{
+      success: boolean;
+      data: Array<any>;
+    }>(`/achievements`),
+
+  getBadges: () =>
+    apiRequest<{
+      success: boolean;
+      data: Array<any>;
+    }>(`/achievements/badges`),
+
+  getAchievementStats: () =>
+    apiRequest<{
+      success: boolean;
+      data: {
+        totalPoints: number;
+        achievementsEarned: number;
+        badgesEarned: number;
+        recentAchievements: Array<any>;
+      };
+    }>(`/achievements/stats`),
+
+  getRoleAchievements: () =>
+    apiRequest<{
+      success: boolean;
+      data: Array<any>;
+    }>(`/achievements/role`),
+
+  getBadgeLevels: () =>
+    apiRequest<{
+      success: boolean;
+      data: {
+        levels: Array<any>;
+      };
+    }>(`/achievements/badges/levels`),
 };

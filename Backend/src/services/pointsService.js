@@ -1,9 +1,9 @@
-const Points = require('../models/Points');
-const User = require('../models/User');
-const Leaderboard = require('../models/Leaderboard');
-const Achievement = require('../models/Achievement');
-const Badge = require('../models/Badge');
-const notificationService = require('./notificationService');
+const Points = require("../models/Points");
+const User = require("../models/User");
+const Leaderboard = require("../models/Leaderboard");
+const Achievement = require("../models/Achievement");
+const Badge = require("../models/Badge");
+const notificationService = require("./notificationService");
 
 /**
  * Award points to a user
@@ -15,7 +15,14 @@ const notificationService = require('./notificationService');
  * @param {string} description - Description of points
  * @returns {Promise<Object>} Points record
  */
-const awardPoints = async (userId, points, source, role, sourceId = null, description = '') => {
+const awardPoints = async (
+  userId,
+  points,
+  source,
+  role,
+  sourceId = null,
+  description = "",
+) => {
   try {
     // Check if points already awarded for this source
     if (sourceId) {
@@ -52,8 +59,8 @@ const awardPoints = async (userId, points, source, role, sourceId = null, descri
     await notificationService.createNotification(
       userId,
       `You earned ${points} points! ${description}`,
-      'POINTS_EARNED',
-      sourceId
+      "POINTS_EARNED",
+      sourceId,
     );
 
     return pointsRecord;
@@ -106,37 +113,52 @@ const calculatePoints = (action, role, metadata = {}) => {
 const updateLeaderboard = async (userId, role) => {
   try {
     const user = await User.findById(userId);
-    if (!user || !['DONOR', 'NGO', 'VOLUNTEER'].includes(role)) {
+    if (!user || !["DONOR", "NGO", "VOLUNTEER"].includes(role)) {
       return;
     }
 
     // Get user stats
     const donationsCount = await Points.countDocuments({
       userId,
-      source: 'DONATION',
+      source: "DONATION",
     });
     const pickupsCount = await Points.countDocuments({
       userId,
-      source: 'PICKUP',
+      source: "PICKUP",
     });
     const achievementsCount = await Achievement.countDocuments({ userId });
     const badgesCount = await Badge.countDocuments({ userId });
 
+    // Prepare update data based on role
+    const updateData = {
+      userId,
+      role,
+      totalPoints: user.totalPoints,
+      achievementsCount,
+      badgesCount,
+      lastUpdated: new Date(),
+    };
+
+    // Set role-specific counts
+    if (role === "DONOR") {
+      updateData.donationsCount = donationsCount;
+      updateData.collectionsCount = 0;
+      updateData.pickupsCount = 0;
+    } else if (role === "NGO") {
+      updateData.donationsCount = 0;
+      updateData.collectionsCount = pickupsCount; // NGOs collect donations
+      updateData.pickupsCount = 0;
+    } else if (role === "VOLUNTEER") {
+      updateData.donationsCount = 0;
+      updateData.collectionsCount = 0;
+      updateData.pickupsCount = pickupsCount;
+    }
+
     // Update or create leaderboard entry
-    await Leaderboard.findOneAndUpdate(
-      { userId },
-      {
-        userId,
-        role,
-        totalPoints: user.totalPoints,
-        donationsCount,
-        pickupsCount,
-        achievementsCount,
-        badgesCount,
-        lastUpdated: new Date(),
-      },
-      { upsert: true, new: true }
-    );
+    await Leaderboard.findOneAndUpdate({ userId }, updateData, {
+      upsert: true,
+      new: true,
+    });
 
     // Recalculate ranks for this role
     await recalculateRanks(role);
@@ -154,13 +176,13 @@ const recalculateRanks = async (role) => {
   try {
     const leaderboard = await Leaderboard.find({ role })
       .sort({ totalPoints: -1 })
-      .select('userId');
+      .select("userId");
 
     // Update ranks
     for (let i = 0; i < leaderboard.length; i++) {
       await Leaderboard.findOneAndUpdate(
         { userId: leaderboard[i].userId },
-        { rank: i + 1 }
+        { rank: i + 1 },
       );
     }
   } catch (error) {
@@ -179,40 +201,40 @@ const checkAchievements = async (userId, role) => {
     const user = await User.findById(userId);
     const donationsCount = await Points.countDocuments({
       userId,
-      source: 'DONATION',
+      source: "DONATION",
     });
     const pickupsCount = await Points.countDocuments({
       userId,
-      source: 'PICKUP',
+      source: "PICKUP",
     });
 
     // Check for milestone achievements
     const milestones = [
-      { count: 5, title: 'First Steps', points: 25 },
-      { count: 10, title: 'Getting Started', points: 50 },
-      { count: 25, title: 'Making a Difference', points: 100 },
-      { count: 50, title: 'Community Hero', points: 200 },
-      { count: 100, title: 'Food Waste Warrior', points: 500 },
+      { count: 5, title: "First Steps", points: 25 },
+      { count: 10, title: "Getting Started", points: 50 },
+      { count: 25, title: "Making a Difference", points: 100 },
+      { count: 50, title: "Community Hero", points: 200 },
+      { count: 100, title: "Food Waste Warrior", points: 500 },
     ];
 
-    const totalActions = role === 'DONOR' ? donationsCount : pickupsCount;
+    const totalActions = role === "DONOR" ? donationsCount : pickupsCount;
 
     for (const milestone of milestones) {
       if (totalActions >= milestone.count) {
         // Check if achievement already exists
         const existingAchievement = await Achievement.findOne({
           userId,
-          type: 'MILESTONE',
-          'metadata.milestoneValue': milestone.count,
+          type: "MILESTONE",
+          "metadata.milestoneValue": milestone.count,
         });
 
         if (!existingAchievement) {
           // Award achievement
           await Achievement.create({
             userId,
-            type: 'MILESTONE',
+            type: "MILESTONE",
             title: milestone.title,
-            description: `Completed ${milestone.count} ${role === 'DONOR' ? 'donations' : 'pickups'}`,
+            description: `Completed ${milestone.count} ${role === "DONOR" ? "donations" : "pickups"}`,
             pointsAwarded: milestone.points,
             metadata: {
               milestoneValue: milestone.count,
@@ -223,17 +245,17 @@ const checkAchievements = async (userId, role) => {
           await awardPoints(
             userId,
             milestone.points,
-            'ACHIEVEMENT',
+            "ACHIEVEMENT",
             role,
             null,
-            `Achievement unlocked: ${milestone.title}`
+            `Achievement unlocked: ${milestone.title}`,
           );
 
           // Send notification
           await notificationService.createNotification(
             userId,
             `Achievement unlocked: ${milestone.title}!`,
-            'BADGE_EARNED'
+            "BADGE_EARNED",
           );
         }
       }
@@ -250,4 +272,3 @@ module.exports = {
   recalculateRanks,
   checkAchievements,
 };
-

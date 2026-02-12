@@ -4,8 +4,10 @@ import { AuthProvider } from "./hooks/useAuth";
 import { LandingPage } from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import  DonationsPage  from "./pages/DonationsPage";
+import DonationsPage from "./pages/DonationsPage";
 import { CreateDonationPage } from "./pages/CreateDonationPage";
+import { DonationDetailPage } from "./pages/DonationDetailPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import MapPage from "./pages/MapPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import DonorDashboard from "./pages/dashboard/DonorDashboard";
@@ -23,6 +25,7 @@ function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/donations" element={<DonationsPage />} />
+          <Route path="/donations/:id" element={<DonationDetailPage />} />
           <Route
             path="/create-donation"
             element={
@@ -33,6 +36,14 @@ function App() {
           />
           <Route path="/map" element={<MapPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard/donor"
             element={

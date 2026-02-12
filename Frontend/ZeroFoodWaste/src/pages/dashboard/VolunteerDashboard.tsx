@@ -26,6 +26,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
+const foodTypeEmojis: Record<string, string> = {
+  Vegetables: "🥕",
+  Bakery: "🍞",
+  "Cooked Food": "🍱",
+  Dairy: "🥛",
+  Fruits: "🍎",
+  Packaged: "🥫",
+  Grains: "🌾",
+  Meat: "🍖",
+  Seafood: "🐟",
+};
+
 type AssignmentStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
 interface Assignment {
@@ -80,7 +92,7 @@ interface AvailableTask {
 }
 
 const VolunteerDashboard = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [availableTasks, setAvailableTasks] = useState<AvailableTask[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -214,6 +226,8 @@ const VolunteerDashboard = () => {
       // Complete the assignment
       await api.completeAssignment(currentTask._id);
 
+      await refreshUser();
+
       toast({
         title: "Delivery completed!",
         description: "Great job! Points have been added to your account.",
@@ -241,6 +255,8 @@ const VolunteerDashboard = () => {
     setIsAcceptingTask(true);
     try {
       await api.acceptTask(donationId);
+      await refreshUser();
+
       toast({
         title: "Task accepted!",
         description: "Check your current delivery section.",
@@ -331,7 +347,6 @@ const VolunteerDashboard = () => {
                 color: "text-amber-600",
                 bg: "bg-amber-100",
               },
-              
             ].map((stat, index) => (
               <motion.div
                 key={stat.title}
@@ -594,11 +609,15 @@ const VolunteerDashboard = () => {
                         className="flex items-center justify-between p-3 rounded-lg bg-green-50"
                       >
                         <div>
+                        <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
+                        {foodTypeEmojis[task.title] || "🍽️"}
+
+                      </div>
                           <p className="font-medium text-foreground">
                             {task.title}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {task.quantity}
+                            {task.quantity} kg
                           </p>
                         </div>
                         <Badge

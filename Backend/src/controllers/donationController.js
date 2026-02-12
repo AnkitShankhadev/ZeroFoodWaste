@@ -1,8 +1,8 @@
-const FoodDonation = require('../models/FoodDonation');
-const PickupAssignment = require('../models/PickupAssignment');
-const { AppError } = require('../middleware/errorHandler');
-const pointsService = require('../services/pointsService');
-const notificationService = require('../services/notificationService');
+const FoodDonation = require("../models/FoodDonation");
+const PickupAssignment = require("../models/PickupAssignment");
+const { AppError } = require("../middleware/errorHandler");
+const pointsService = require("../services/pointsService");
+const notificationService = require("../services/notificationService");
 
 /**
  * @desc    Create a food donation
@@ -11,16 +11,17 @@ const notificationService = require('../services/notificationService');
  */
 exports.createDonation = async (req, res, next) => {
   try {
-    const { foodType, quantity, expiryDate, description, location, images } = req.body;
+    const { foodType, quantity, expiryDate, description, location, images } =
+      req.body;
 
     // Validation
     if (!foodType || !quantity || !expiryDate || !location) {
-      return next(new AppError('Please provide all required fields', 400));
+      return next(new AppError("Please provide all required fields", 400));
     }
 
     // Check expiry date
     if (new Date(expiryDate) <= new Date()) {
-      return next(new AppError('Expiry date must be in the future', 400));
+      return next(new AppError("Expiry date must be in the future", 400));
     }
 
     const donation = await FoodDonation.create({
@@ -58,9 +59,9 @@ exports.getAllDonations = async (req, res, next) => {
     if (donorId) query.donorId = donorId;
 
     const donations = await FoodDonation.find(query)
-      .populate('donorId', 'name email location')
-      .populate('acceptedBy', 'name email')
-      .populate('assignedVolunteer', 'name email')
+      .populate("donorId", "name email location")
+      .populate("acceptedBy", "name email")
+      .populate("assignedVolunteer", "name email")
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
@@ -89,12 +90,12 @@ exports.getAllDonations = async (req, res, next) => {
 exports.getDonation = async (req, res, next) => {
   try {
     const donation = await FoodDonation.findById(req.params.id)
-      .populate('donorId', 'name email location phone')
-      .populate('acceptedBy', 'name email location')
-      .populate('assignedVolunteer', 'name email location');
+      .populate("donorId", "name email location phone")
+      .populate("acceptedBy", "name email location")
+      .populate("assignedVolunteer", "name email location");
 
     if (!donation) {
-      return next(new AppError('Donation not found', 404));
+      return next(new AppError("Donation not found", 404));
     }
 
     res.status(200).json({
@@ -115,22 +116,28 @@ exports.getDonation = async (req, res, next) => {
  */
 exports.updateDonation = async (req, res, next) => {
   try {
-    const { foodType, quantity, expiryDate, description, location, images } = req.body;
+    const { foodType, quantity, expiryDate, description, location, images } =
+      req.body;
 
     const donation = await FoodDonation.findById(req.params.id);
 
     if (!donation) {
-      return next(new AppError('Donation not found', 404));
+      return next(new AppError("Donation not found", 404));
     }
 
     // Check if user is the donor or admin
-    if (donation.donorId.toString() !== req.user.id && req.user.role !== 'ADMIN') {
-      return next(new AppError('Not authorized to update this donation', 403));
+    if (
+      donation.donorId.toString() !== req.user.id &&
+      req.user.role !== "ADMIN"
+    ) {
+      return next(new AppError("Not authorized to update this donation", 403));
     }
 
     // Can't update if already accepted or completed
-    if (['ACCEPTED', 'ASSIGNED', 'COMPLETED'].includes(donation.status)) {
-      return next(new AppError('Cannot update donation in current status', 400));
+    if (["ACCEPTED", "ASSIGNED", "COMPLETED"].includes(donation.status)) {
+      return next(
+        new AppError("Cannot update donation in current status", 400),
+      );
     }
 
     const updateData = {};
@@ -144,7 +151,7 @@ exports.updateDonation = async (req, res, next) => {
     const updatedDonation = await FoodDonation.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     res.status(200).json({
@@ -168,33 +175,45 @@ exports.acceptDonation = async (req, res, next) => {
     const donation = await FoodDonation.findById(req.params.id);
 
     if (!donation) {
-      return next(new AppError('Donation not found', 404));
+      return next(new AppError("Donation not found", 404));
     }
 
-    if (donation.status !== 'CREATED') {
-      return next(new AppError('Donation is not available for acceptance', 400));
+    if (donation.status !== "CREATED") {
+      return next(
+        new AppError("Donation is not available for acceptance", 400),
+      );
     }
 
-    donation.status = 'ACCEPTED';
+    donation.status = "ACCEPTED";
     donation.acceptedBy = req.user.id;
     await donation.save();
 
-    // Award points to donor
+    // Award points to donor for creating donation
     await pointsService.awardPoints(
       donation.donorId,
-      pointsService.calculatePoints('DONATION', 'DONOR'),
-      'DONATION',
-      'DONOR',
+      pointsService.calculatePoints("DONATION", "DONOR"),
+      "DONATION",
+      "DONOR",
       donation._id,
-      'Donation created'
+      "Donation created",
+    );
+
+    // Award points to NGO for accepting donation
+    await pointsService.awardPoints(
+      req.user.id,
+      pointsService.calculatePoints("DONATION", "NGO"),
+      "DONATION",
+      "NGO",
+      donation._id,
+      "Donation accepted",
     );
 
     // Send notification to donor
     await notificationService.createNotification(
       donation.donorId,
       `Your donation has been accepted by ${req.user.name}`,
-      'DONATION_ACCEPTED',
-      donation._id
+      "DONATION_ACCEPTED",
+      donation._id,
     );
 
     res.status(200).json({
@@ -218,23 +237,27 @@ exports.completeDonation = async (req, res, next) => {
     const donation = await FoodDonation.findById(req.params.id);
 
     if (!donation) {
-      return next(new AppError('Donation not found', 404));
+      return next(new AppError("Donation not found", 404));
     }
 
     // Check authorization
     const isDonor = donation.donorId.toString() === req.user.id;
-    const isVolunteer = donation.assignedVolunteer && donation.assignedVolunteer.toString() === req.user.id;
-    const isAdmin = req.user.role === 'ADMIN';
+    const isVolunteer =
+      donation.assignedVolunteer &&
+      donation.assignedVolunteer.toString() === req.user.id;
+    const isAdmin = req.user.role === "ADMIN";
 
     if (!isDonor && !isVolunteer && !isAdmin) {
-      return next(new AppError('Not authorized to complete this donation', 403));
+      return next(
+        new AppError("Not authorized to complete this donation", 403),
+      );
     }
 
-    if (donation.status === 'COMPLETED') {
-      return next(new AppError('Donation already completed', 400));
+    if (donation.status === "COMPLETED") {
+      return next(new AppError("Donation already completed", 400));
     }
 
-    donation.status = 'COMPLETED';
+    donation.status = "COMPLETED";
     donation.completedAt = new Date();
     await donation.save();
 
@@ -242,31 +265,36 @@ exports.completeDonation = async (req, res, next) => {
     if (isDonor) {
       await pointsService.awardPoints(
         donation.donorId,
-        pointsService.calculatePoints('COMPLETION', 'DONOR'),
-        'DONATION',
-        'DONOR',
+        pointsService.calculatePoints("COMPLETION", "DONOR"),
+        "DONATION",
+        "DONOR",
         donation._id,
-        'Donation completed'
+        "Donation completed",
       );
-      await pointsService.checkAchievements(donation.donorId, 'DONOR');
+      await pointsService.checkAchievements(donation.donorId, "DONOR");
     }
 
     if (donation.assignedVolunteer) {
       await pointsService.awardPoints(
         donation.assignedVolunteer,
-        pointsService.calculatePoints('COMPLETION', 'VOLUNTEER'),
-        'PICKUP',
-        'VOLUNTEER',
+        pointsService.calculatePoints("COMPLETION", "VOLUNTEER"),
+        "PICKUP",
+        "VOLUNTEER",
         donation._id,
-        'Pickup completed'
+        "Pickup completed",
       );
-      await pointsService.checkAchievements(donation.assignedVolunteer, 'VOLUNTEER');
+      await pointsService.checkAchievements(
+        donation.assignedVolunteer,
+        "VOLUNTEER",
+      );
     }
 
     // Update pickup assignment if exists
-    const assignment = await PickupAssignment.findOne({ donationId: donation._id });
+    const assignment = await PickupAssignment.findOne({
+      donationId: donation._id,
+    });
     if (assignment) {
-      assignment.status = 'COMPLETED';
+      assignment.status = "COMPLETED";
       assignment.completedAt = new Date();
       await assignment.save();
     }
@@ -274,9 +302,9 @@ exports.completeDonation = async (req, res, next) => {
     // Send notifications
     await notificationService.createNotification(
       donation.donorId,
-      'Your donation has been completed successfully!',
-      'DONATION_COMPLETED',
-      donation._id
+      "Your donation has been completed successfully!",
+      "DONATION_COMPLETED",
+      donation._id,
     );
 
     res.status(200).json({
@@ -302,32 +330,36 @@ exports.cancelDonation = async (req, res, next) => {
     const donation = await FoodDonation.findById(req.params.id);
 
     if (!donation) {
-      return next(new AppError('Donation not found', 404));
+      return next(new AppError("Donation not found", 404));
     }
 
     // Check authorization
     const isDonor = donation.donorId.toString() === req.user.id;
-    const isAdmin = req.user.role === 'ADMIN';
+    const isAdmin = req.user.role === "ADMIN";
 
     if (!isDonor && !isAdmin) {
-      return next(new AppError('Not authorized to cancel this donation', 403));
+      return next(new AppError("Not authorized to cancel this donation", 403));
     }
 
-    if (['COMPLETED', 'CANCELLED'].includes(donation.status)) {
-      return next(new AppError('Cannot cancel donation in current status', 400));
+    if (["COMPLETED", "CANCELLED"].includes(donation.status)) {
+      return next(
+        new AppError("Cannot cancel donation in current status", 400),
+      );
     }
 
-    donation.status = 'CANCELLED';
+    donation.status = "CANCELLED";
     donation.cancelledAt = new Date();
-    donation.cancellationReason = reason || 'No reason provided';
+    donation.cancellationReason = reason || "No reason provided";
     await donation.save();
 
     // Cancel pickup assignment if exists
-    const assignment = await PickupAssignment.findOne({ donationId: donation._id });
+    const assignment = await PickupAssignment.findOne({
+      donationId: donation._id,
+    });
     if (assignment) {
-      assignment.status = 'CANCELLED';
+      assignment.status = "CANCELLED";
       assignment.cancelledAt = new Date();
-      assignment.cancellationReason = reason || 'Donation cancelled';
+      assignment.cancellationReason = reason || "Donation cancelled";
       await assignment.save();
     }
 
@@ -352,30 +384,86 @@ exports.deleteDonation = async (req, res, next) => {
     const donation = await FoodDonation.findById(req.params.id);
 
     if (!donation) {
-      return next(new AppError('Donation not found', 404));
+      return next(new AppError("Donation not found", 404));
     }
 
     // Check authorization
     const isDonor = donation.donorId.toString() === req.user.id;
-    const isAdmin = req.user.role === 'ADMIN';
+    const isAdmin = req.user.role === "ADMIN";
 
     if (!isDonor && !isAdmin) {
-      return next(new AppError('Not authorized to delete this donation', 403));
+      return next(new AppError("Not authorized to delete this donation", 403));
     }
 
     // Can only delete if not accepted or completed
-    if (['ACCEPTED', 'ASSIGNED', 'COMPLETED'].includes(donation.status)) {
-      return next(new AppError('Cannot delete donation in current status', 400));
+    if (["ACCEPTED", "ASSIGNED", "COMPLETED"].includes(donation.status)) {
+      return next(
+        new AppError("Cannot delete donation in current status", 400),
+      );
     }
 
     await FoodDonation.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
-      message: 'Donation deleted successfully',
+      message: "Donation deleted successfully",
     });
   } catch (error) {
     next(error);
   }
 };
+/**
+ * @desc    Clean up expired donations (mark as EXPIRED)
+ * @route   POST /api/donations/cleanup/expired
+ * @access  Private/Admin
+ */
+exports.cleanupExpiredDonations = async (req, res, next) => {
+  try {
+    const now = new Date();
 
+    // Find donations that are expired
+    const expiredDonations = await FoodDonation.find({
+      expiryDate: { $lt: now },
+      status: { $nin: ["DELIVERED", "CANCELLED", "EXPIRED"] },
+    }).populate("donorId", "name email _id");
+
+    if (expiredDonations.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No expired donations found",
+        data: {
+          cleaned: 0,
+        },
+      });
+    }
+
+    // Mark each expired donation as EXPIRED
+    const cleanedCount = await FoodDonation.updateMany(
+      {
+        expiryDate: { $lt: now },
+        status: { $nin: ["DELIVERED", "CANCELLED", "EXPIRED"] },
+      },
+      { status: "EXPIRED" },
+    );
+
+    // Send notifications to donors
+    for (const donation of expiredDonations) {
+      await notificationService.createNotification(
+        donation.donorId._id,
+        `Your donation of ${donation.foodType} has expired and been removed from availability.`,
+        "SYSTEM",
+        donation._id,
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully marked ${cleanedCount.modifiedCount} donation(s) as expired`,
+      data: {
+        cleaned: cleanedCount.modifiedCount,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
