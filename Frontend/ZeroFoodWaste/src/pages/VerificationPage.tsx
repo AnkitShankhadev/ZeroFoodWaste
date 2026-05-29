@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Leaf,  CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { Leaf, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 
@@ -122,8 +122,7 @@ const VerificationPage = () => {
       }
     } catch (error: any) {
       const message =
-        error.message ||
-        "Failed to verify OTP. Please try again.";
+        error.message || "Failed to verify OTP. Please try again.";
       toast({
         title: "Verification Failed",
         description: message,

@@ -81,27 +81,7 @@ const Donations = () => {
     return matchesSearch && matchesType;
   });
 
-  const handleAcceptDonation = async (id: string) => {
-    try {
-      const response = await api.acceptDonation(id);
-      const updated = response.data?.donation;
-
-      toast({
-        title: "Donation accepted",
-        description: "You have accepted this donation.",
-      });
-
-      setDonations((prev) =>
-        prev.map((d) => (d._id === updated._id ? updated : d)),
-      );
-    } catch (err: any) {
-      toast({
-        title: "Could not accept donation",
-        description: err.message || "Please try again later.",
-        variant: "destructive",
-      });
-    }
-  };
+  
 
   return (
     <div className="min-h-screen bg-background text-foreground">

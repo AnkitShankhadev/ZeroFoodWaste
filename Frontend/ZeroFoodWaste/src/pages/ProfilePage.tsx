@@ -17,8 +17,6 @@ import {
   AlertCircle,
   Calendar,
   Edit3,
-  Award,
-  Star,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
@@ -70,7 +68,6 @@ export function ProfilePage() {
     phone: "",
     address: "",
   });
-  const [badges, setBadges] = useState<any[]>([]);
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -99,26 +96,7 @@ export function ProfilePage() {
         setIsLoading(false);
       }
     };
-
-    const fetchBadges = async () => {
-      if (!user?.id) return;
-      try {
-        const badgesRes = (await api.getBadges()) as any;
-        console.log("Badges response:", badgesRes);
-        // Handle both possible shapes: { data: { badges: [] } } or { data: [] }
-        if (badgesRes.success) {
-          const badgeList =
-            badgesRes.data?.badges ?? // { data: { badges: [...] } }
-            (Array.isArray(badgesRes.data) ? badgesRes.data : []); // { data: [...] }
-          setBadges(badgeList);
-        }
-      } catch (err) {
-        console.error("Error fetching badges:", err);
-      }
-    };
-
     fetchProfile();
-    fetchBadges();
   }, [user?.id]);
 
   const handleProfileImageClick = () => {
