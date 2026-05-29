@@ -22,6 +22,7 @@ const notificationSchema = new mongoose.Schema({
       "DONATION_IN_TRANSIT",
       "DONATION_DELIVERED",
       "DONATION_PICKUP_CANCELLED",
+      "NEW_DONATION_NEARBY",
       "SYSTEM",
       "ADMIN",
     ],

@@ -1,47 +1,47 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Please provide a name'],
+    required: [true, "Please provide a name"],
     trim: true,
   },
   email: {
     type: String,
-    required: [true, 'Please provide an email'],
+    required: [true, "Please provide an email"],
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    match: [/^\S+@\S+\.\S+$/, "Please provide a valid email"],
   },
   password: {
     type: String,
-    required: [true, 'Please provide a password'],
+    required: [true, "Please provide a password"],
     minlength: 6,
     select: false, // Don't return password by default
   },
   role: {
     type: String,
-    enum: ['DONOR', 'NGO', 'VOLUNTEER', 'ADMIN'],
-    required: [true, 'Please provide a role'],
+    enum: ["DONOR", "NGO", "VOLUNTEER", "ADMIN"],
+    required: [true, "Please provide a role"],
   },
   status: {
     type: String,
-    enum: ['ACTIVE', 'BANNED', 'INACTIVE'],
-    default: 'ACTIVE',
+    enum: ["ACTIVE", "BANNED", "INACTIVE"],
+    default: "ACTIVE",
   },
   location: {
     lat: {
       type: Number,
-      required: function() {
-        return this.role !== 'ADMIN';
+      required: function () {
+        return this.role !== "ADMIN";
       },
     },
     lng: {
       type: Number,
-      required: function() {
-        return this.role !== 'ADMIN';
+      required: function () {
+        return this.role !== "ADMIN";
       },
     },
     address: String,
@@ -50,12 +50,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  // Email verification fields
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationOtp: String,
+  verificationOtpExpires: Date,
   // Fields for password reset functionality
   passwordResetToken: String,
   passwordResetExpires: Date,
   profileImage: {
     type: String,
-    default: '',
+    default: "",
   },
   totalPoints: {
     type: Number,
@@ -68,8 +75,8 @@ const userSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);
@@ -78,9 +85,8 @@ userSchema.pre('save', async function(next) {
 });
 
 // Method to compare password
-userSchema.methods.matchPassword = async function(enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
-
+module.exports = mongoose.model("User", userSchema);

@@ -312,6 +312,9 @@ exports.updateAssignmentStatus = async (req, res, next) => {
         "Delivery completed"
       );
 
+      // Check achievements for volunteer
+      await pointsService.checkAchievements(req.user.id, "VOLUNTEER");
+
       // Send notification to volunteer
       await notificationService.createNotification(
         req.user.id,
@@ -548,6 +551,9 @@ exports.completeAssignment = async (req, res, next) => {
       assignment._id,
       "Delivery completed",
     );
+
+    // Check achievements for volunteer
+    await pointsService.checkAchievements(req.user.id, "VOLUNTEER");
 
     // Send notification to volunteer
     await notificationService.createNotification(

@@ -194,3 +194,38 @@ exports.getMapPins = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Update user role (Admin only)
+ * @route   PUT /api/users/:id/role
+ * @access  Private/Admin
+ */
+exports.updateUserRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+
+    if (!['DONOR', 'NGO', 'VOLUNTEER', 'ADMIN'].includes(role)) {
+      return next(new AppError('Invalid role', 400));
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+

@@ -7,7 +7,10 @@ interface ProtectedRouteProps {
   requiredRole?: "DONOR" | "NGO" | "VOLUNTEER" | "ADMIN";
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+}: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
@@ -38,4 +41,3 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   return <>{children}</>;
 }
-

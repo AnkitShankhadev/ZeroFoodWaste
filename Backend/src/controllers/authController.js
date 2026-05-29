@@ -30,7 +30,7 @@ exports.register = async (req, res, next) => {
       return next(new AppError("User already exists with this email", 400));
     }
 
-    // Create user
+    // Create user with unverified email
     const user = await User.create({
       name,
       email,
@@ -38,6 +38,7 @@ exports.register = async (req, res, next) => {
       role,
       location,
       phone,
+      isEmailVerified: false,
     });
 
     // Create leaderboard entry for new user
@@ -53,12 +54,92 @@ exports.register = async (req, res, next) => {
       rank: 0,
     });
 
-    // Generate token
-    const token = generateToken(user._id);
+    // Generate and send OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+    user.verificationOtp = hashedOtp;
+    user.verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    // Send OTP via email
+    const emailContent = `
+      <h2>Verify your Email</h2>
+      <p>Welcome to ZeroFoodWaste, ${name}!</p>
+      <p>Your OTP for email verification is:</p>
+      <h1 style="letter-spacing: 2px; color: #27ae60;">${otp}</h1>
+      <p>This OTP is valid for 10 minutes.</p>
+      <p>If you didn't create this account, please ignore this email.</p>
+    `;
+
+    await sendEmail({
+      to: email,
+      subject: "ZeroFoodWaste - Email Verification OTP",
+      html: emailContent,
+    });
 
     res.status(201).json({
       success: true,
-      token, // ✅ FIX: Token at root level for frontend
+      message: "Registration successful! OTP sent to your email.",
+      data: {
+        email: user.email,
+        userId: user._id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Verify email with OTP
+ * @route   POST /api/auth/verify-email
+ * @access  Public
+ */
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Validation
+    if (!email || !otp) {
+      return next(new AppError("Please provide email and OTP", 400));
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return next(new AppError("User not found", 404));
+    }
+
+    // Check if already verified
+    if (user.isEmailVerified) {
+      return next(new AppError("Email is already verified", 400));
+    }
+
+    // Check OTP
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+    if (user.verificationOtp !== hashedOtp) {
+      return next(new AppError("Invalid OTP", 400));
+    }
+
+    // Check if OTP has expired
+    if (user.verificationOtpExpires < new Date()) {
+      return next(new AppError("OTP has expired", 400));
+    }
+
+    // Mark email as verified
+    user.isEmailVerified = true;
+    user.verificationOtp = undefined;
+    user.verificationOtpExpires = undefined;
+    await user.save();
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully!",
+      token,
       data: {
         user: {
           id: user._id,
@@ -66,8 +147,70 @@ exports.register = async (req, res, next) => {
           email: user.email,
           role: user.role,
           location: user.location,
+          isEmailVerified: true,
+          totalPoints: user.totalPoints || 0,
+          phone: user.phone || "",
+          status: user.status || "ACTIVE",
+          profileImage: user.profileImage || "",
         },
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Resend OTP
+ * @route   POST /api/auth/resend-otp
+ * @access  Public
+ */
+exports.resendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    // Validation
+    if (!email) {
+      return next(new AppError("Please provide email", 400));
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return next(new AppError("User not found", 404));
+    }
+
+    // Check if already verified
+    if (user.isEmailVerified) {
+      return next(new AppError("Email is already verified", 400));
+    }
+
+    // Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+    user.verificationOtp = hashedOtp;
+    user.verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    // Send OTP via email
+    const emailContent = `
+      <h2>Verify your Email</h2>
+      <p>Your new OTP for email verification is:</p>
+      <h1 style="letter-spacing: 2px; color: #27ae60;">${otp}</h1>
+      <p>This OTP is valid for 10 minutes.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `;
+
+    await sendEmail({
+      to: email,
+      subject: "ZeroFoodWaste - Email Verification OTP",
+      html: emailContent,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent to your email successfully!",
     });
   } catch (error) {
     next(error);

@@ -3,6 +3,7 @@ const PickupAssignment = require("../models/PickupAssignment");
 const { AppError } = require("../middleware/errorHandler");
 const pointsService = require("../services/pointsService");
 const notificationService = require("../services/notificationService");
+const geoService = require("../services/geoService");
 
 /**
  * @desc    Create a food donation
@@ -33,6 +34,29 @@ exports.createDonation = async (req, res, next) => {
       location,
       images: images || [],
     });
+
+    // Notify nearby NGOs (within 10 km) about the new donation
+    if (location?.lat && location?.lng) {
+      try {
+        const nearbyNGOs = await geoService.findNearbyNGOs(location.lat, location.lng);
+        const donorName = req.user.name || 'A donor';
+        const foodLabel = `${quantity} ${foodType}`;
+        const locationLabel = location.address || 'a nearby location';
+
+        for (const ngo of nearbyNGOs) {
+          await notificationService.createNotification(
+            ngo._id,
+            `🍱 New donation available nearby! ${donorName} has listed ${foodLabel} at ${locationLabel}. Grab it before it expires!`,
+            'NEW_DONATION_NEARBY',
+            donation._id,
+            { donationId: donation._id, distance: ngo.distance }
+          );
+        }
+      } catch (notifErr) {
+        // Non-critical: log but don't fail the request
+        console.error('NGO proximity notification failed:', notifErr.message);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -207,6 +231,10 @@ exports.acceptDonation = async (req, res, next) => {
       donation._id,
       "Donation accepted",
     );
+
+    // Check achievements for donor and NGO
+    await pointsService.checkAchievements(donation.donorId, "DONOR");
+    await pointsService.checkAchievements(req.user.id, "NGO");
 
     // Send notification to donor
     await notificationService.createNotification(
@@ -395,8 +423,8 @@ exports.deleteDonation = async (req, res, next) => {
       return next(new AppError("Not authorized to delete this donation", 403));
     }
 
-    // Can only delete if not accepted or completed
-    if (["ACCEPTED", "ASSIGNED", "DELIVERED"].includes(donation.status)) {
+    // Can only delete if not accepted or completed (unless admin!)
+    if (!isAdmin && ["ACCEPTED", "ASSIGNED", "DELIVERED"].includes(donation.status)) {
       return next(
         new AppError("Cannot delete donation in current status", 400),
       );

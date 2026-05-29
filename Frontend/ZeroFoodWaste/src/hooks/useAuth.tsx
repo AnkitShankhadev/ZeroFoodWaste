@@ -23,6 +23,7 @@ interface User {
   phone?: string;
   status?: string;
   profileImage?: string;
+  isEmailVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -36,8 +37,11 @@ interface AuthContextType {
     role: AppRole,
     location?: any,
     phone?: string,
-  ) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; user?: any }>;
+  ) => Promise<{ error: Error | null; userId?: string }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: Error | null; user?: any }>;
   signOut: () => Promise<void>;
   updatePassword: (
     currentPassword: string,
@@ -60,6 +64,17 @@ export function AuthProvider({
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem("token");
+      const cachedUser = localStorage.getItem("user");
+
+      // Load cached user first for immediate availability
+      if (cachedUser) {
+        try {
+          const parsedUser = JSON.parse(cachedUser);
+          setUser(parsedUser);
+        } catch (error) {
+          console.error("Failed to parse cached user:", error);
+        }
+      }
 
       if (token) {
         try {
@@ -76,18 +91,23 @@ export function AuthProvider({
               phone: apiUser.phone,
               status: apiUser.status,
               profileImage: apiUser.profileImage,
+              isEmailVerified: apiUser.isEmailVerified,
             };
             setUser(normalizedUser);
             localStorage.setItem("user", JSON.stringify(normalizedUser));
           } else {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            setUser(null);
           }
         } catch (error) {
           console.error("Failed to load user:", error);
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          setUser(null);
         }
+      } else {
+        setUser(null);
       }
 
       setIsLoading(false);
@@ -103,7 +123,7 @@ export function AuthProvider({
     role: AppRole,
     location?: any,
     phone?: string,
-  ): Promise<{ error: Error | null }> => {
+  ): Promise<{ error: Error | null; userId?: string }> => {
     try {
       console.log("📝 Registering user:", {
         name,
@@ -124,7 +144,12 @@ export function AuthProvider({
 
       console.log("✅ Registration response:", response);
 
-      // ✅ FIX: Get token from root level or data.token
+      // Handle email verification flow - no token sent until email is verified
+      if (response.success && response.data?.userId) {
+        return { error: null, userId: response.data.userId };
+      }
+
+      // Fallback: if token is provided, store it
       const token = response.token;
       const userData = response.data?.user;
 
@@ -132,10 +157,15 @@ export function AuthProvider({
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
-        return { error: null };
+        return { error: null, userId: userData.id };
       }
 
-      return { error: new Error("No token received from server") };
+      // If no token but registration was successful, return userId for verification flow
+      if (response.success && response.data?.email) {
+        return { error: null, userId: response.data.userId };
+      }
+
+      return { error: new Error("Registration response incomplete") };
     } catch (error: any) {
       console.error("❌ Registration error:", error);
       return {
@@ -151,7 +181,6 @@ export function AuthProvider({
     email: string,
     password: string,
   ): Promise<{ error: Error | null; user?: any }> => {
-    // ✅ Add user?: any to return type
     try {
       console.log("🔐 Signing in:", email);
 
@@ -166,7 +195,7 @@ export function AuthProvider({
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
-        return { error: null, user: userData }; // ✅ Return user
+        return { error: null, user: userData };
       }
 
       return {

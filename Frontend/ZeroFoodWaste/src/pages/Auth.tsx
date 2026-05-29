@@ -48,7 +48,7 @@ const roles = [
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { signIn, signUp, isAuthenticated } = useAuth();
+  const { signIn, signUp, isAuthenticated, user } = useAuth();
   const [mode, setMode] = useState<AuthMode>(
     (searchParams.get("mode") as AuthMode) || "login",
   );
@@ -73,10 +73,16 @@ const Auth = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard/donor");
+    if (isAuthenticated && user) {
+      const dashboardMap: Record<string, string> = {
+        VOLUNTEER: "/dashboard/volunteer",
+        DONOR: "/dashboard/donor",
+        NGO: "/dashboard/ngo",
+        ADMIN: "/dashboard/admin",
+      };
+      navigate(dashboardMap[user.role] || "/dashboard/donor");
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
     const modeParam = searchParams.get("mode") as AuthMode;
@@ -185,7 +191,7 @@ const Auth = () => {
 
     try {
       if (mode === "login") {
-        const { error, user } = await signIn(formData.email, formData.password); // ✅ Destructure user
+        const { error, user } = await signIn(formData.email, formData.password);
 
         if (error) {
           toast({
@@ -199,14 +205,15 @@ const Auth = () => {
             description: "You've successfully logged in.",
           });
 
-          // ✅ Use the actual user role from backend
+          // Use the actual user role from backend
           const dashboardMap: Record<string, string> = {
             VOLUNTEER: "/dashboard/volunteer",
             DONOR: "/dashboard/donor",
             NGO: "/dashboard/ngo",
+            ADMIN: "/dashboard/admin",
           };
 
-          // ✅ Navigate based on user's actual role
+          // Navigate based on user's actual role
           navigate(dashboardMap[user?.role] || "/dashboard/donor");
         }
       } else {
@@ -243,7 +250,7 @@ const Auth = () => {
           volunteer: "VOLUNTEER",
         };
 
-        const { error } = await signUp(
+        const { error, userId } = await signUp(
           formData.name,
           formData.email,
           formData.password,
@@ -261,14 +268,15 @@ const Auth = () => {
         } else {
           toast({
             title: "Account created!",
-            description: `Your ${selectedRole} account has been created.`,
+            description: "Please verify your email to continue.",
           });
-          const dashboardMap: Record<UserRole, string> = {
-            donor: "/dashboard/donor",
-            ngo: "/dashboard/ngo",
-            volunteer: "/dashboard/volunteer",
-          };
-          navigate(dashboardMap[selectedRole]);
+          // Redirect to email verification page
+          navigate("/verify-email", {
+            state: {
+              email: formData.email,
+              userId: userId,
+            },
+          });
         }
       }
     } catch (error) {

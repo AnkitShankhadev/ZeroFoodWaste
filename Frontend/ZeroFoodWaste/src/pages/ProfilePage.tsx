@@ -17,6 +17,8 @@ import {
   AlertCircle,
   Calendar,
   Edit3,
+  Award,
+  Star,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
@@ -68,23 +70,23 @@ export function ProfilePage() {
     phone: "",
     address: "",
   });
+  const [badges, setBadges] = useState<any[]>([]);
 
   // Fetch user profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!user?.id) return;
       try {
         setIsLoading(true);
-        if (user?.id) {
-          const response = (await api.getUser(user.id)) as any;
-          if (response.success && response.data?.user) {
-            setProfile(response.data.user);
-            setFormData({
-              name: response.data.user.name || "",
-              phone: response.data.user.phone || "",
-              address: response.data.user.location?.address || "",
-            });
-            setProfilePreview(response.data.user.profileImage || "");
-          }
+        const profileRes = (await api.getUser(user.id)) as any;
+        if (profileRes.success && profileRes.data?.user) {
+          setProfile(profileRes.data.user);
+          setFormData({
+            name: profileRes.data.user.name || "",
+            phone: profileRes.data.user.phone || "",
+            address: profileRes.data.user.location?.address || "",
+          });
+          setProfilePreview(profileRes.data.user.profileImage || "");
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -98,7 +100,25 @@ export function ProfilePage() {
       }
     };
 
+    const fetchBadges = async () => {
+      if (!user?.id) return;
+      try {
+        const badgesRes = (await api.getBadges()) as any;
+        console.log("Badges response:", badgesRes);
+        // Handle both possible shapes: { data: { badges: [] } } or { data: [] }
+        if (badgesRes.success) {
+          const badgeList =
+            badgesRes.data?.badges ?? // { data: { badges: [...] } }
+            (Array.isArray(badgesRes.data) ? badgesRes.data : []); // { data: [...] }
+          setBadges(badgeList);
+        }
+      } catch (err) {
+        console.error("Error fetching badges:", err);
+      }
+    };
+
     fetchProfile();
+    fetchBadges();
   }, [user?.id]);
 
   const handleProfileImageClick = () => {
@@ -392,8 +412,8 @@ export function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Personal Info */}
-            <div className="lg:col-span-4 space-y-8">
+            {/* Left Column: Personal Info + Badges */}
+            <div className="lg:col-span-3 space-y-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

@@ -4,6 +4,7 @@ const Leaderboard = require("../models/Leaderboard");
 const Achievement = require("../models/Achievement");
 const Badge = require("../models/Badge");
 const notificationService = require("./notificationService");
+const achievementService = require("./achievementService");
 const { DONOR_ACHIEVEMENTS, NGO_ACHIEVEMENTS, VOLUNTEER_ACHIEVEMENTS } = require("../config/achievements");
 const FoodDonation = require("../models/FoodDonation");
 const PickupAssignment = require("../models/PickupAssignment");
@@ -57,6 +58,9 @@ const awardPoints = async (
 
     // Update leaderboard
     await updateLeaderboard(userId, role);
+
+    // Check and award badges based on updated points
+    await achievementService.checkAndAwardBadges(userId);
 
     // Send notification
     await notificationService.createNotification(
@@ -313,6 +317,17 @@ const checkAchievements = async (userId, role) => {
             achievementId: achievementDef.id,
             targetValue: achievementDef.targetValue,
           },
+        });
+
+        // Create a corresponding badge for the achievement
+        await Badge.create({
+          userId,
+          badgeType: "SPECIAL",
+          badgeName: achievementDef.title,
+          description: achievementDef.description,
+          icon: achievementDef.icon || "🏅",
+          criteria: `Unlocked achievement: ${achievementDef.title}`,
+          earnedAt: new Date(),
         });
 
         // Award points for achievement

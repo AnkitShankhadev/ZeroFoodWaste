@@ -255,14 +255,7 @@ const Donations = () => {
                         <p className="font-extrabold text-lg leading-none">{donation.donorId?.name || "Anonymous"}</p>
                       </div>
                       <div className="flex gap-2">
-                        {user?.role === "NGO" && donation.status === "CREATED" && (
-                          <button
-                            className="px-5 py-3 bg-background text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary rounded-xl border border-foreground/20 font-black transition-colors shadow-sm text-sm"
-                            onClick={() => handleAcceptDonation(donation._id || donation.id)}
-                          >
-                            Accept
-                          </button>
-                        )}
+                        
                         <Link to={`/donations/${donation._id || donation.id}`}>
                           <button className="px-5 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-black transition-colors shadow-md text-sm border-2 border-primary">
                             View

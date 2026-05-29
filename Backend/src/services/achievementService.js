@@ -52,7 +52,6 @@ const awardAchievement = async (userId, achievementId, role) => {
       return null; // Already earned
     }
 
-    // Create achievement
     const achievement = await Achievement.create({
       userId,
       type: achievementConfig.type,
@@ -64,6 +63,17 @@ const awardAchievement = async (userId, achievementId, role) => {
         achievementId,
         role,
       },
+      earnedAt: new Date(),
+    });
+
+    // Create a corresponding badge for the achievement
+    await Badge.create({
+      userId,
+      badgeType: "SPECIAL",
+      badgeName: achievementConfig.title,
+      description: achievementConfig.description,
+      icon: achievementConfig.icon || "🏅",
+      criteria: `Unlocked achievement: ${achievementConfig.title}`,
       earnedAt: new Date(),
     });
 

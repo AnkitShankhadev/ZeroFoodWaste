@@ -119,9 +119,19 @@ export function NotificationDropdown() {
           ),
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
+        toast({
+          title: "Marked",
+          description: "Notification marked as read",
+        });
       }
     } catch (err) {
       console.error("Error marking notification as read:", err);
+      toast({
+        title: "Error",
+        description:
+          err instanceof Error ? err.message : "Failed to mark notification",
+        variant: "destructive",
+      });
     }
   };
 

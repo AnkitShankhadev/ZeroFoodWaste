@@ -23,7 +23,10 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { buildNGOAchievements, useAchievementNotifications } from "@/hooks/useAchievements";
+import {
+  buildNGOAchievements,
+  useAchievementNotifications,
+} from "@/hooks/useAchievements";
 
 type DonationStatus =
   | "CREATED"
@@ -196,13 +199,14 @@ const NGODashboard = () => {
   }, [acceptedDonations, completedDonations]);
 
   const achievements = useMemo(
-    () => buildNGOAchievements({
-      collectedKg: stats.collectedKg,
-      activePickups: stats.activePickups,
-      completedCount: stats.completedCount,
-      peopleFed: stats.peopleFed,
-    }),
-    [stats]
+    () =>
+      buildNGOAchievements({
+        collectedKg: stats.collectedKg,
+        activePickups: stats.activePickups,
+        completedCount: stats.completedCount,
+        peopleFed: stats.peopleFed,
+      }),
+    [stats],
   );
 
   useAchievementNotifications(achievements, user?.id);
@@ -215,22 +219,29 @@ const NGODashboard = () => {
         <div className="container mx-auto px-4">
           {/* Hero Greeting Banner */}
           <div className="relative rounded-3xl overflow-hidden mb-8 bg-gradient-to-r from-primary to-accent shadow-xl">
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-15"
-            />
+            <div className="absolute inset-0 bg-cover bg-center opacity-15" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-8 md:p-10">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">
                   <Building2 className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-widest mb-1">NGO Dashboard</p>
-                  <h1 className="text-3xl md:text-4xl font-extrabold text-primary-foreground tracking-tight">{user?.name || "Your NGO"}</h1>
-                  <p className="text-primary-foreground/60 mt-1 text-sm">{nearbyDonations.length} new donations available nearby</p>
+                  <p className="text-primary-foreground/80 text-sm font-semibold uppercase tracking-widest mb-1">
+                    NGO Dashboard
+                  </p>
+                  <h1 className="text-3xl md:text-4xl font-extrabold text-primary-foreground tracking-tight">
+                    {user?.name || "Your NGO"}
+                  </h1>
+                  <p className="text-primary-foreground/60 mt-1 text-sm">
+                    {nearbyDonations.length} new donations available nearby
+                  </p>
                 </div>
               </div>
               <Link to="/map">
-                <Button size="lg" className="gap-2 bg-secondary text-secondary-foreground font-bold hover:bg-secondary/80 rounded-full px-6 shadow-lg hover:-translate-y-0.5 transition-all">
+                <Button
+                  size="lg"
+                  className="gap-2 bg-secondary text-secondary-foreground font-bold hover:bg-secondary/80 rounded-full px-6 shadow-lg hover:-translate-y-0.5 transition-all"
+                >
                   <MapPin className="w-5 h-5" /> View Map
                 </Button>
               </Link>
@@ -269,14 +280,25 @@ const NGODashboard = () => {
                 bg: "bg-green-100",
               },
             ].map((stat, index) => (
-              <motion.div key={stat.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
                 <Card className="border-0 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 bg-card overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{stat.title}</p>
-                        <p className="text-4xl font-black text-foreground tracking-tight">{stat.value}</p>
-                        <p className="text-sm text-muted-foreground mt-1.5">{stat.change}</p>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                          {stat.title}
+                        </p>
+                        <p className="text-4xl font-black text-foreground tracking-tight">
+                          {stat.value}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1.5">
+                          {stat.change}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -309,7 +331,7 @@ const NGODashboard = () => {
                   <div className="p-4 text-sm text-red-600">{errorNearby}</div>
                 ) : nearbyDonations.length === 0 ? (
                   <div className="p-4 text-sm text-muted-foreground">
-                    No available donations at the moment.
+                    No nearby available donations at the moment.
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
@@ -331,7 +353,7 @@ const NGODashboard = () => {
                                 variant="secondary"
                                 className={
                                   typeColors[
-                                  donation.foodType?.toLowerCase()
+                                    donation.foodType?.toLowerCase()
                                   ] || "bg-primary/20 text-primary"
                                 }
                               >
@@ -353,13 +375,13 @@ const NGODashboard = () => {
                                 Expires{" "}
                                 {donation.expiryDate
                                   ? `on ${new Date(
-                                    donation.expiryDate,
-                                  ).toLocaleDateString()} ${new Date(
-                                    donation.expiryDate,
-                                  ).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}`
+                                      donation.expiryDate,
+                                    ).toLocaleDateString()} ${new Date(
+                                      donation.expiryDate,
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}`
                                   : "soon"}
                               </span>
                             </div>
@@ -373,7 +395,11 @@ const NGODashboard = () => {
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </Link>
-                            <Button variant="hero" size="sm" className="bg-primary text-primary-foreground">
+                            <Button
+                              variant="hero"
+                              size="sm"
+                              className="bg-primary text-primary-foreground"
+                            >
                               Accept
                             </Button>
                           </div>
@@ -520,7 +546,8 @@ const NGODashboard = () => {
                   <Trophy className="w-4 h-4 text-amber-500" />
                   Achievements
                   <span className="ml-1 inline-flex items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold px-2 py-0.5">
-                    {achievements.filter(a => a.unlocked).length}/{achievements.length}
+                    {achievements.filter((a) => a.unlocked).length}/
+                    {achievements.length}
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -530,32 +557,55 @@ const NGODashboard = () => {
                     <motion.div
                       key={achievement.id}
                       initial={false}
-                      animate={achievement.unlocked ? { scale: [1, 1.02, 1] } : {}}
+                      animate={
+                        achievement.unlocked ? { scale: [1, 1.02, 1] } : {}
+                      }
                       transition={{ duration: 0.4 }}
-                      className={`flex items-start gap-3 p-3 rounded-2xl transition-all ${achievement.unlocked
-                        ? "bg-gradient-to-r from-primary/5 to-accent/5 ring-1 ring-primary/40"
-                        : "bg-muted/50"
-                        }`}
+                      className={`flex items-start gap-3 p-3 rounded-2xl transition-all ${
+                        achievement.unlocked
+                          ? "bg-gradient-to-r from-primary/5 to-accent/5 ring-1 ring-primary/40"
+                          : "bg-muted/50"
+                      }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-sm ${achievement.unlocked ? "bg-card border border-border" : "bg-muted grayscale opacity-50 border border-border"
-                        }`}>
-                        {achievement.unlocked ? achievement.emoji : <Lock className="w-4 h-4 text-muted-foreground" />}
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-sm ${
+                          achievement.unlocked
+                            ? "bg-card border border-border"
+                            : "bg-muted grayscale opacity-50 border border-border"
+                        }`}
+                      >
+                        {achievement.unlocked ? (
+                          achievement.emoji
+                        ) : (
+                          <Lock className="w-4 h-4 text-muted-foreground" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-0.5">
-                          <p className={`text-xs font-bold truncate ${achievement.unlocked ? "text-foreground" : "text-muted-foreground"}`}>
+                          <p
+                            className={`text-xs font-bold truncate ${achievement.unlocked ? "text-foreground" : "text-muted-foreground"}`}
+                          >
                             {achievement.name}
                           </p>
                           {achievement.unlocked && (
-                            <span className="flex-shrink-0 text-[10px] font-bold text-primary bg-primary/20 px-1.5 py-0.5 rounded-full">✓ Done</span>
+                            <span className="flex-shrink-0 text-[10px] font-bold text-primary bg-primary/20 px-1.5 py-0.5 rounded-full">
+                              ✓ Done
+                            </span>
                           )}
                         </div>
-                        <p className={`text-[10px] leading-tight mb-1.5 ${achievement.unlocked ? "text-muted-foreground" : "text-muted-foreground/70"}`}>
+                        <p
+                          className={`text-[10px] leading-tight mb-1.5 ${achievement.unlocked ? "text-muted-foreground" : "text-muted-foreground/70"}`}
+                        >
                           {achievement.description}
                         </p>
                         <div className="flex items-center gap-2">
-                          <Progress value={achievement.progress} className={`h-1.5 flex-1 ${achievement.unlocked ? "" : "opacity-40"}`} />
-                          <span className={`text-[10px] font-semibold flex-shrink-0 ${achievement.unlocked ? "text-primary" : "text-muted-foreground"}`}>
+                          <Progress
+                            value={achievement.progress}
+                            className={`h-1.5 flex-1 ${achievement.unlocked ? "" : "opacity-40"}`}
+                          />
+                          <span
+                            className={`text-[10px] font-semibold flex-shrink-0 ${achievement.unlocked ? "text-primary" : "text-muted-foreground"}`}
+                          >
                             {achievement.progressLabel}
                           </span>
                         </div>

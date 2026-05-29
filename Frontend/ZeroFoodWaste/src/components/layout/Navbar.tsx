@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationDropdown } from "./NotificationDropdown";
+import { toast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +24,10 @@ export const Navbar = () => {
 
   const handleLogout = async () => {
     await signOut();
+    toast({
+      title: "Logged out successfully",
+      description: "Thank you for contributing to zero food waste!",
+    });
     navigate("/");
     setIsOpen(false);
   };

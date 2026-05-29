@@ -5,6 +5,7 @@ const {
   getUser,
   updateUser,
   updateUserStatus,
+  updateUserRole,
   deleteUser,
   getMapPins,
 } = require('../controllers/userController');
@@ -20,6 +21,7 @@ router.get('/', adminOnly, getAllUsers);
 router.get('/:id', getUser);
 router.put('/:id', authorize('DONOR', 'NGO', 'VOLUNTEER', 'ADMIN'), updateUser);
 router.put('/:id/status', adminOnly, updateUserStatus);
+router.put('/:id/role', adminOnly, updateUserRole);
 router.delete('/:id', adminOnly, deleteUser);
 
 module.exports = router;

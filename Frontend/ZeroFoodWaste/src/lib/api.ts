@@ -193,6 +193,23 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  updateUserRole: (id: string, role: string) =>
+    apiRequest<{ success: boolean; data: { user: any } }>(`/users/${id}/role`, {
+      method: "PUT",
+      body: JSON.stringify({ role }),
+    }),
+
+  updateUserStatus: (id: string, status: string) =>
+    apiRequest<{ success: boolean; data: { user: any } }>(`/users/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+
+  deleteUser: (id: string) =>
+    apiRequest<{ success: boolean; message: string }>(`/users/${id}`, {
+      method: "DELETE",
+    }),
+
   acceptDonation: (id: string) =>
     apiRequest<{ success: boolean; data: { donation: any } }>(
       `/donations/${id}/accept`,
@@ -308,7 +325,7 @@ export const api = {
   getBadges: () =>
     apiRequest<{
       success: boolean;
-      data: Array<any>;
+      data: { badges: any[] };
     }>(`/achievements/badges`),
 
   getAchievementStats: () =>
