@@ -13,13 +13,7 @@ import {
   useAchievementNotifications,
   type Achievement,
 } from "@/hooks/useAchievements";
-import {
-  Trophy,
-  Loader,
-  Lock,
-  ChevronRight,
-  Medal,
-} from "lucide-react";
+import { Trophy, Loader, Lock, ChevronRight, Medal } from "lucide-react";
 
 type TabType = "donors" | "ngos" | "volunteers";
 
@@ -49,7 +43,10 @@ const roleMap: Record<TabType, string> = {
   volunteers: "VOLUNTEER",
 };
 
-const tabColors: Record<TabType, { active: string; bg: string; accent: string; badge: string }> = {
+const tabColors: Record<
+  TabType,
+  { active: string; bg: string; accent: string; badge: string }
+> = {
   donors: {
     active: "text-primary border-primary bg-primary/10",
     bg: "from-primary to-accent",
@@ -73,7 +70,9 @@ const tabColors: Record<TabType, { active: string; bg: string; accent: string; b
 const LeaderboardPage = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("donors");
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(
+    [],
+  );
   const [userRank, setUserRank] = useState<UserRank | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +88,11 @@ const LeaderboardPage = () => {
           success: boolean;
           data: { leaderboard: LeaderboardEntry[] };
         }>(`/leaderboard?role=${role}&limit=10`);
-        setLeaderboardData(response.data.leaderboard || []);
+        // Filter out entries with null userId
+        const validData = (response.data.leaderboard || []).filter(
+          (item) => item.userId && item.userId.name,
+        );
+        setLeaderboardData(validData);
       } catch (err) {
         console.error("Error fetching leaderboard:", err);
         setError("Failed to load leaderboard data");
@@ -173,10 +176,10 @@ const LeaderboardPage = () => {
       <main className="pt-20 pb-16">
         <div className="container mx-auto px-4">
           {/* Hero Banner */}
-          <div className={`relative rounded-3xl overflow-hidden mb-8 bg-gradient-to-r ${colors.bg} shadow-xl`}>
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-10"
-            />
+          <div
+            className={`relative rounded-3xl overflow-hidden mb-8 bg-gradient-to-r ${colors.bg} shadow-xl`}
+          >
+            <div className="absolute inset-0 bg-cover bg-center opacity-10" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6 p-8 md:p-10">
               <div className="flex items-center gap-4">
                 <motion.div
@@ -287,10 +290,11 @@ const LeaderboardPage = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex-1 px-4 py-3.5 flex items-center justify-center gap-2 text-sm font-semibold transition-all border-b-2 ${activeTab === tab.id
-                        ? `${colors.active} border-current`
-                        : "text-muted-foreground hover:text-foreground border-transparent"
-                        }`}
+                      className={`flex-1 px-4 py-3.5 flex items-center justify-center gap-2 text-sm font-semibold transition-all border-b-2 ${
+                        activeTab === tab.id
+                          ? `${colors.active} border-current`
+                          : "text-muted-foreground hover:text-foreground border-transparent"
+                      }`}
                     >
                       {tab.label}
                     </button>
@@ -302,7 +306,9 @@ const LeaderboardPage = () => {
                   {loading ? (
                     <div className="p-10 text-center">
                       <Loader className="w-5 h-5 animate-spin mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Loading leaderboard...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Loading leaderboard...
+                      </p>
                     </div>
                   ) : error ? (
                     <div className="p-10 text-center">
@@ -318,59 +324,64 @@ const LeaderboardPage = () => {
                       </p>
                     </div>
                   ) : (
-                    leaderboardData.map((item, index) => (
-                      <motion.div
-                        key={`${item.userId._id || item.userId.email}-${item.rank}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.04 }}
-                        className={`px-5 py-4 flex items-center gap-4 hover:bg-muted/50 transition-colors ${item.rank <= 3
-                          ? "bg-gradient-to-r from-secondary/10 to-transparent"
-                          : ""
-                          }`}
-                      >
-                        {/* Rank */}
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${item.rank === 1
-                            ? "bg-gradient-to-br from-secondary to-[#c7b37f] text-secondary-foreground shadow-md"
-                            : item.rank === 2
-                              ? "bg-gradient-to-br from-muted-foreground/30 to-muted-foreground/50 text-foreground shadow-md"
-                              : item.rank === 3
-                                ? "bg-gradient-to-br from-orange-400/60 to-amber-500/60 text-white shadow-md"
-                                : "bg-muted border border-border text-muted-foreground"
+                    leaderboardData.map(
+                      (item, index) =>
+                        item.userId && (
+                          <motion.div
+                            key={`${item.userId._id || item.userId.email}-${item.rank}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.04 }}
+                            className={`px-5 py-4 flex items-center gap-4 hover:bg-muted/50 transition-colors ${
+                              item.rank <= 3
+                                ? "bg-gradient-to-r from-secondary/10 to-transparent"
+                                : ""
                             }`}
-                        >
-                          {item.rank <= 3
-                            ? ["🥇", "🥈", "🥉"][item.rank - 1]
-                            : item.rank}
-                        </div>
+                          >
+                            {/* Rank */}
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${
+                                item.rank === 1
+                                  ? "bg-gradient-to-br from-secondary to-[#c7b37f] text-secondary-foreground shadow-md"
+                                  : item.rank === 2
+                                    ? "bg-gradient-to-br from-muted-foreground/30 to-muted-foreground/50 text-foreground shadow-md"
+                                    : item.rank === 3
+                                      ? "bg-gradient-to-br from-orange-400/60 to-amber-500/60 text-white shadow-md"
+                                      : "bg-muted border border-border text-muted-foreground"
+                              }`}
+                            >
+                              {item.rank <= 3
+                                ? ["🥇", "🥈", "🥉"][item.rank - 1]
+                                : item.rank}
+                            </div>
 
-                        {/* Avatar placeholder + Name */}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground text-sm truncate">
-                            {item.userId.name}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {activeTab === "donors" &&
-                              `${item.donationsCount || 0} donations`}
-                            {activeTab === "ngos" &&
-                              `${item.collectionsCount || 0} collections`}
-                            {activeTab === "volunteers" &&
-                              `${item.pickupsCount || 0} deliveries`}
-                          </div>
-                        </div>
+                            {/* Avatar placeholder + Name */}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-foreground text-sm truncate">
+                                {item.userId.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {activeTab === "donors" &&
+                                  `${item.donationsCount || 0} donations`}
+                                {activeTab === "ngos" &&
+                                  `${item.collectionsCount || 0} collections`}
+                                {activeTab === "volunteers" &&
+                                  `${item.pickupsCount || 0} deliveries`}
+                              </div>
+                            </div>
 
-                        {/* Points */}
-                        <div className="text-right flex-shrink-0">
-                          <div className="font-black text-foreground text-sm">
-                            {item.totalPoints?.toLocaleString() || 0}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                            points
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))
+                            {/* Points */}
+                            <div className="text-right flex-shrink-0">
+                              <div className="font-black text-foreground text-sm">
+                                {item.totalPoints?.toLocaleString() || 0}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                                points
+                              </div>
+                            </div>
+                          </motion.div>
+                        ),
+                    )
                   )}
                 </div>
               </Card>
@@ -382,7 +393,9 @@ const LeaderboardPage = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
                     Your Achievements
-                    <span className={`ml-auto inline-flex items-center justify-center rounded-full text-[10px] font-bold px-2 py-0.5 ${colors.badge}`}>
+                    <span
+                      className={`ml-auto inline-flex items-center justify-center rounded-full text-[10px] font-bold px-2 py-0.5 ${colors.badge}`}
+                    >
                       {unlockedCount}/{achievements.length}
                     </span>
                   </CardTitle>
@@ -402,24 +415,29 @@ const LeaderboardPage = () => {
                       <motion.div
                         key={achievement.id}
                         initial={false}
-                        animate={achievement.unlocked ? { scale: [1, 1.02, 1] } : {}}
+                        animate={
+                          achievement.unlocked ? { scale: [1, 1.02, 1] } : {}
+                        }
                         transition={{ duration: 0.4 }}
-                        className={`flex items-start gap-3 p-3 rounded-2xl transition-all ${achievement.unlocked
-                          ? `bg-gradient-to-r ${activeTab === "donors"
-                            ? "from-primary/5 to-accent/5 ring-1 ring-primary/40"
-                            : activeTab === "ngos"
-                              ? "from-secondary/10 to-accent/10 ring-1 ring-secondary/40"
-                              : "from-accent/10 to-primary/10 ring-1 ring-accent/40"
-                          }`
-                          : "bg-muted/50"
-                          }`}
+                        className={`flex items-start gap-3 p-3 rounded-2xl transition-all ${
+                          achievement.unlocked
+                            ? `bg-gradient-to-r ${
+                                activeTab === "donors"
+                                  ? "from-primary/5 to-accent/5 ring-1 ring-primary/40"
+                                  : activeTab === "ngos"
+                                    ? "from-secondary/10 to-accent/10 ring-1 ring-secondary/40"
+                                    : "from-accent/10 to-primary/10 ring-1 ring-accent/40"
+                              }`
+                            : "bg-muted/50"
+                        }`}
                       >
                         {/* Emoji badge */}
                         <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-sm ${achievement.unlocked
-                            ? "bg-card border border-border"
-                            : "bg-muted grayscale opacity-50 border border-border"
-                            }`}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-sm ${
+                            achievement.unlocked
+                              ? "bg-card border border-border"
+                              : "bg-muted grayscale opacity-50 border border-border"
+                          }`}
                         >
                           {achievement.unlocked ? (
                             achievement.emoji
@@ -432,10 +450,11 @@ const LeaderboardPage = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-0.5">
                             <p
-                              className={`text-xs font-bold truncate ${achievement.unlocked
-                                ? "text-foreground"
-                                : "text-muted-foreground/70"
-                                }`}
+                              className={`text-xs font-bold truncate ${
+                                achievement.unlocked
+                                  ? "text-foreground"
+                                  : "text-muted-foreground/70"
+                              }`}
                             >
                               {achievement.name}
                             </p>
@@ -448,24 +467,27 @@ const LeaderboardPage = () => {
                             )}
                           </div>
                           <p
-                            className={`text-[10px] leading-tight mb-1.5 ${achievement.unlocked
-                              ? "text-muted-foreground"
-                              : "text-muted-foreground/70"
-                              }`}
+                            className={`text-[10px] leading-tight mb-1.5 ${
+                              achievement.unlocked
+                                ? "text-muted-foreground"
+                                : "text-muted-foreground/70"
+                            }`}
                           >
                             {achievement.description}
                           </p>
                           <div className="flex items-center gap-2">
                             <Progress
                               value={achievement.progress}
-                              className={`h-1.5 flex-1 ${achievement.unlocked ? "" : "opacity-40"
-                                }`}
+                              className={`h-1.5 flex-1 ${
+                                achievement.unlocked ? "" : "opacity-40"
+                              }`}
                             />
                             <span
-                              className={`text-[10px] font-semibold flex-shrink-0 ${achievement.unlocked
-                                ? colors.accent
-                                : "text-muted-foreground/70"
-                                }`}
+                              className={`text-[10px] font-semibold flex-shrink-0 ${
+                                achievement.unlocked
+                                  ? colors.accent
+                                  : "text-muted-foreground/70"
+                              }`}
                             >
                               {achievement.progressLabel}
                             </span>
@@ -487,7 +509,9 @@ const LeaderboardPage = () => {
                   <ul className="space-y-2 text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-3 h-3 mt-0.5 text-secondary flex-shrink-0" />
-                      <span>Complete donations regularly to earn steady points</span>
+                      <span>
+                        Complete donations regularly to earn steady points
+                      </span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-3 h-3 mt-0.5 text-secondary flex-shrink-0" />
@@ -495,7 +519,9 @@ const LeaderboardPage = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-3 h-3 mt-0.5 text-secondary flex-shrink-0" />
-                      <span>Higher quantity donations earn more points per action</span>
+                      <span>
+                        Higher quantity donations earn more points per action
+                      </span>
                     </li>
                   </ul>
                 </CardContent>

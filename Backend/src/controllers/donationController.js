@@ -38,23 +38,26 @@ exports.createDonation = async (req, res, next) => {
     // Notify nearby NGOs (within 10 km) about the new donation
     if (location?.lat && location?.lng) {
       try {
-        const nearbyNGOs = await geoService.findNearbyNGOs(location.lat, location.lng);
-        const donorName = req.user.name || 'A donor';
+        const nearbyNGOs = await geoService.findNearbyNGOs(
+          location.lat,
+          location.lng,
+        );
+        const donorName = req.user.name || "A donor";
         const foodLabel = `${quantity} ${foodType}`;
-        const locationLabel = location.address || 'a nearby location';
+        const locationLabel = location.address || "a nearby location";
 
         for (const ngo of nearbyNGOs) {
           await notificationService.createNotification(
             ngo._id,
-            `🍱 New donation available nearby! ${donorName} has listed ${foodLabel} at ${locationLabel}. Grab it before it expires!`,
-            'NEW_DONATION_NEARBY',
+            `New donation available nearby! ${donorName} has listed ${foodLabel} at ${locationLabel}. Grab it before it expires!`,
+            "NEW_DONATION_NEARBY",
             donation._id,
-            { donationId: donation._id, distance: ngo.distance }
+            { donationId: donation._id, distance: ngo.distance },
           );
         }
       } catch (notifErr) {
         // Non-critical: log but don't fail the request
-        console.error('NGO proximity notification failed:', notifErr.message);
+        console.error("NGO proximity notification failed:", notifErr.message);
       }
     }
 
@@ -424,7 +427,10 @@ exports.deleteDonation = async (req, res, next) => {
     }
 
     // Can only delete if not accepted or completed (unless admin!)
-    if (!isAdmin && ["ACCEPTED", "ASSIGNED", "DELIVERED"].includes(donation.status)) {
+    if (
+      !isAdmin &&
+      ["ACCEPTED", "ASSIGNED", "DELIVERED"].includes(donation.status)
+    ) {
       return next(
         new AppError("Cannot delete donation in current status", 400),
       );
@@ -452,7 +458,9 @@ exports.getDonationLocations = async (req, res, next) => {
       "location.lat": { $exists: true },
       "location.lng": { $exists: true },
     })
-      .select("foodType quantity quantityUnit expiryDate description status location donorId")
+      .select(
+        "foodType quantity quantityUnit expiryDate description status location donorId",
+      )
       .populate("donorId", "name profileImage phone")
       .lean();
 
@@ -467,7 +475,13 @@ exports.getDonationLocations = async (req, res, next) => {
       latitude: d.location.lat,
       longitude: d.location.lng,
       address: d.location.address,
-      donor: d.donorId ? { name: d.donorId.name, phone: d.donorId.phone, profileImage: d.donorId.profileImage } : null,
+      donor: d.donorId
+        ? {
+            name: d.donorId.name,
+            phone: d.donorId.phone,
+            profileImage: d.donorId.profileImage,
+          }
+        : null,
     }));
 
     res.status(200).json({
