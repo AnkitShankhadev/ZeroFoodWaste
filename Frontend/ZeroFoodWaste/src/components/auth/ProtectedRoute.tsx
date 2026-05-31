@@ -36,6 +36,11 @@ export function ProtectedRoute({
       VOLUNTEER: "/dashboard/volunteer",
       ADMIN: "/dashboard/admin",
     };
+
+    if (!user) {
+      return <Navigate to="/" replace />;
+    }
+
     return <Navigate to={dashboardMap[user.role] || "/"} replace />;
   }
 

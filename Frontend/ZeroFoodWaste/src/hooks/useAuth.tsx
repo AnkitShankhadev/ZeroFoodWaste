@@ -144,25 +144,31 @@ export function AuthProvider({
 
       console.log("✅ Registration response:", response);
 
+      const token = response.token;
+      const userData = response.data?.user;
+      const userId =
+        (response.data as any)?.userId ?? userData?.id ?? userData?._id;
+
       // Handle email verification flow - no token sent until email is verified
-      if (response.success && response.data?.userId) {
-        return { error: null, userId: response.data.userId };
+      if (response.success && userId && !token) {
+        return { error: null, userId };
       }
 
       // Fallback: if token is provided, store it
-      const token = response.token;
-      const userData = response.data?.user;
-
       if (token && userData) {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(userData));
         setUser(userData);
-        return { error: null, userId: userData.id };
+        return { error: null, userId: userData.id ?? userData._id };
       }
 
       // If no token but registration was successful, return userId for verification flow
-      if (response.success && response.data?.email) {
-        return { error: null, userId: response.data.userId };
+      // Some APIs return email under data.user, so check both shapes
+      if (
+        response.success &&
+        ((response.data as any)?.email || userData?.email)
+      ) {
+        return userId ? { error: null, userId } : { error: null };
       }
 
       return { error: new Error("Registration response incomplete") };
