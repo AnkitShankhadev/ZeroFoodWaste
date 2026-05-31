@@ -258,7 +258,7 @@ const ForgotPasswordPage = () => {
                 className="w-full"
                 onClick={() => setStep("reset")}
               >
-                Demo: Go to Reset Password
+                 Go to Reset Password
               </Button>
 
               <Link
