@@ -43,7 +43,7 @@ exports.createDonation = async (req, res, next) => {
           location.lng,
         );
         const donorName = req.user.name || "A donor";
-        const foodLabel = `${quantity} ${foodType}`;
+        const foodLabel = `${quantity} kg ${foodType}`;
         const locationLabel = location.address || "a nearby location";
 
         for (const ngo of nearbyNGOs) {
